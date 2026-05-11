@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Micro — Le Voyage Invisible | مايكرو — الرحلة الخفية</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; overflow:hidden; cursor:pointer; }
+canvas { display:block; width:100vw; height:100vh; }
+#loader {
+  position:fixed; inset:0; background:#000; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:10px; z-index:99; transition:opacity 1.2s;
+}
+#loader .l1 { font:700 1.2rem 'Playfair Display',serif; color:#fff; letter-spacing:.3em; }
+#loader .l2 { font:700 1rem 'Tajawal',sans-serif; color:rgba(200,230,255,.8); }
+#lang-btn {
+  position:fixed; top:14px; right:16px; z-index:50;
+  background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.22);
+  color:#fff; padding:5px 15px; border-radius:20px; cursor:pointer;
+  font:600 13px 'Tajawal',system-ui; backdrop-filter:blur(6px);
+  transition:all .2s; user-select:none;
+}
+#lang-btn:hover { background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.45); }
+</style>
+</head>
+<body>
+<div id="loader">
+  <div class="l1">CHARGEMENT…</div>
+  <div class="l2">جارٍ التحميل…</div>
+</div>
+<canvas id="c"></canvas>
+<button id="lang-btn">العربية</button>
+<script>
+const CV=document.getElementById('c'), CX=CV.getContext('2d');
+let W,H;
+function resize(){ CV.width=W=innerWidth; CV.height=H=innerHeight; }
+resize(); window.addEventListener('resize',resize);
+
+// ── Language ──────────────────────────────────────────────────────────────
+let LANG='fr';
+document.getElementById('lang-btn').addEventListener('click',e=>{
+  e.stopPropagation();
+  LANG=LANG==='fr'?'ar':'fr';
+  document.getElementById('lang-btn').textContent=LANG==='fr'?'العربية':'Français';
+});
+
+// ── Scene data: bilingual text + real scientific facts ────────────────────
+const SD=[
+  {
+    nm_fr:'Le beau jour', nm_ar:'اليوم الجميل',
+    sb_fr:'Chaque minute, l\'équivalent d\'un camion-poubelle de plastique atteint l\'océan.',
+    sb_ar:'كل دقيقة، ما يعادل شاحنة قمامة من البلاستيك يصل إلى المحيط.',
+    fk_fr:'8 millions de tonnes de plastique entrent dans les océans chaque année — et seulement 9% est recyclé',
+    fk_ar:'8 ملايين طن من البلاستيك تدخل المحيطات سنوياً — و9% فقط يُعاد تدويره',
+    src:'PNUE / ONU Environnement, 2023'
+  },
+  {
+    nm_fr:'Le geste négligent', nm_ar:'التصرف المتهور',
+    sb_fr:'Un seul geste négligent peut tout changer.',
+    sb_ar:'تصرف واحد متهور يمكنه تغيير كل شيء.',
+    fk_fr:'Depuis 1950, l\'humanité a produit 9,2 milliards de tonnes de plastique. 91% n\'a jamais été recyclé.',
+    fk_ar:'منذ عام 1950، أنتجت البشرية 9,2 مليار طن من البلاستيك. 91% لم يُعد تدويره قط.',
+    src:'Roland Geyer et al., Science Advances, 2017'
+  },
+  {
+    nm_fr:'La désintégration', nm_ar:'التفتت',
+    sb_fr:'La bouteille disparaît... mais le plastique, lui, reste.',
+    sb_ar:'الزجاجة تختفي... لكن البلاستيك يبقى.',
+    fk_fr:'Une bouteille PET met 450 ans à se décomposer, libérant des millions de fragments < 5 mm (microplastiques)',
+    fk_ar:'تحتاج زجاجة PET 450 عاماً للتحلل، مطلقةً ملايين شظايا أصغر من 5 ملم (ميكروبلاستيك)',
+    src:'Thompson et al., Nature, 2021'
+  },
+  {
+    nm_fr:'Micro naît', nm_ar:'مايكرو يولد',
+    sb_fr:'Des milliards de microplastiques se répandent dans l\'océan.',
+    sb_ar:'مليارات الجسيمات الميكروبلاستيكية تنتشر في المحيط.',
+    fk_fr:'Plus de 5 000 milliards de fragments de plastique flottent dans les océans du monde',
+    fk_ar:'أكثر من 5 تريليون شظية بلاستيكية تطفو في محيطات العالم حالياً',
+    src:'Eriksen et al., PLOS ONE, 2014'
+  },
+  {
+    nm_fr:'L\'océan blessé', nm_ar:'المحيط الجريح',
+    sb_fr:'Les créatures de l\'océan ingèrent les microplastiques.',
+    sb_ar:'كائنات المحيط تبتلع الجسيمات البلاستيكية الدقيقة.',
+    fk_fr:'700+ espèces marines touchées · 1 million d\'oiseaux & 100 000 mammifères marins meurent chaque année',
+    fk_ar:'700+ نوع بحري متضرر · مليون طائر و100,000 ثديي بحري يموتون سنوياً بسبب البلاستيك',
+    src:'IUCN | WWF Ocean Report, 2023'
+  },
+  {
+    nm_fr:'La chaîne alimentaire', nm_ar:'السلسلة الغذائية',
+    sb_fr:'La chaîne alimentaire mène jusqu\'à notre table.',
+    sb_ar:'السلسلة الغذائية تصل حتى مائدتنا.',
+    fk_fr:'Microplastiques dans 90% du sel de table · 83% de l\'eau du robinet · tous les fruits de mer testés',
+    fk_ar:'الميكروبلاستيك في 90% من ملح الطعام · 83% من مياه الصنبور · كل المأكولات البحرية المفحوصة',
+    src:'Kosuth et al., 2018 | Karami et al., 2017'
+  },
+  {
+    nm_fr:'À notre table', nm_ar:'على مائدتنا',
+    sb_fr:'Toute la famille partage ce repas... et l\'invisible aussi.',
+    sb_ar:'العائلة كلها تتشارك هذه الوجبة... والخفي أيضاً.',
+    fk_fr:'Chaque humain ingère en moyenne 5g de plastique/semaine — l\'équivalent d\'une carte de crédit',
+    fk_ar:'يبتلع كل إنسان في المتوسط 5 غرامات من البلاستيك أسبوعياً — ما يعادل بطاقة ائتمان كاملة',
+    src:'WWF / Université de Newcastle, 2019'
+  },
+  {
+    nm_fr:'Dans nos corps', nm_ar:'في أجسادنا',
+    sb_fr:'Invisibles. Mais présents dans 77% des humains testés.',
+    sb_ar:'غير مرئية. لكنها موجودة في 77% من البشر الخاضعين للاختبار.',
+    fk_fr:'Retrouvés dans le sang, les poumons, le placenta, le lait maternel et les testicules humains',
+    fk_ar:'وُجدت في الدم والرئتين والمشيمة وحليب الأم والخصيتين البشريتين',
+    src:'The Lancet, 2022 | Nature Medicine, 2024'
+  },
+  {
+    nm_fr:'Le message', nm_ar:'الرسالة',
+    sb_fr:'"Ce que nous jetons revient toujours."',
+    sb_ar:'"ما نرميه يعود إلينا دائماً."',
+    fk_fr:'D\'ici 2050, les océans contiendront plus de plastique que de poissons (en poids)',
+    fk_ar:'بحلول عام 2050، ستحتوي المحيطات على بلاستيك أكثر من الأسماك وزناً',
+    src:'Ellen MacArthur Foundation, 2016'
+  },
+  {
+    nm_fr:'L\'espoir', nm_ar:'الأمل',
+    sb_fr:'Ensemble, changeons le cours. Chaque geste compte.',
+    sb_ar:'معاً نغيّر مسار الأمور. كل تصرف يُحدث فرقاً.',
+    fk_fr:'Réduire · Refuser · Réutiliser · Recycler — Des lois anti-plastique adoptées dans 127 pays',
+    fk_ar:'اخفض · ارفض · أعد الاستخدام · أعد التدوير — قوانين مكافحة البلاستيك في 127 دولة',
+    src:'UNEP Plastic Pollution Resolution, 2022'
+  }
+];
+
+function gsd(){ return SD[Math.min(sc,SD.length-1)]; }
+function gsub(){ const d=gsd(); return LANG==='ar'?d.sb_ar:d.sb_fr; }
+function gnm(){ const d=gsd(); return LANG==='ar'?d.nm_ar:d.nm_fr; }
+
+// ── Cinematic zone ────────────────────────────────────────────────────────
+const LB=()=>H*.11;
+const CY=()=>LB()+(H-LB()*2)/2;
+const CH=()=>H-LB()*2;
+
+// ── Load character ────────────────────────────────────────────────────────
+const MICRO_IMG=new Image();
+MICRO_IMG.src='micro.png';
+let imgLoaded=false;
+MICRO_IMG.onload=()=>{ imgLoaded=true; document.getElementById('loader').style.opacity='0'; setTimeout(()=>document.getElementById('loader').remove(),1200); };
+MICRO_IMG.onerror=()=>{ imgLoaded=false; document.getElementById('loader').style.opacity='0'; setTimeout(()=>document.getElementById('loader').remove(),1200); };
+
+// ── Utilities ─────────────────────────────────────────────────────────────
+function bgG(c1,c2,x0=0,y0=LB(),x1=0,y1=H-LB()){
+  const g=CX.createLinearGradient(x0,y0,x1,y1);
+  g.addColorStop(0,c1); g.addColorStop(1,c2);
+  CX.fillStyle=g; CX.fillRect(0,LB(),W,CH());
+}
+function rr(x,y,w,h,r){
+  CX.beginPath(); CX.moveTo(x+r,y); CX.lineTo(x+w-r,y); CX.arcTo(x+w,y,x+w,y+r,r);
+  CX.lineTo(x+w,y+h-r); CX.arcTo(x+w,y+h,x+w-r,y+h,r);
+  CX.lineTo(x+r,y+h); CX.arcTo(x,y+h,x,y+h-r,r);
+  CX.lineTo(x,y+r); CX.arcTo(x,y,x+r,y,r); CX.closePath();
+}
+function circ(x,y,r,c,glow=0){ if(glow){CX.shadowBlur=glow;CX.shadowColor=c;} CX.fillStyle=c; CX.beginPath(); CX.arc(x,y,r,0,Math.PI*2); CX.fill(); if(glow)CX.shadowBlur=0; }
+
+function lerp(a,b,t){ return a+(b-a)*Math.min(1,Math.max(0,t)); }
+function ease(t){ return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
+function clamp(v,a,b){ return Math.min(b,Math.max(a,v)); }
+
+// ── Font helpers ──────────────────────────────────────────────────────────
+function FF(sz,bold=false){
+  return `${bold?'700 ':'400 '}${sz}px ${LANG==='ar'?"'Tajawal',Arial,sans-serif":"'Playfair Display',Georgia,serif"}`;
+}
+function FFA(sz,bold=false){ return `${bold?'700 ':'400 '}${sz}px 'Tajawal',Arial,sans-serif`; }
+function FFR(sz,bold=false){ return `${bold?'700 ':'400 '}${sz}px 'Playfair Display',Georgia,serif`; }
+
+function ctxt(s,x,y,sz,c,a='center',bold=false,shadow=false){
+  if(shadow){CX.shadowBlur=20;CX.shadowColor='rgba(0,0,0,.8)';}
+  CX.font=FF(sz,bold); CX.fillStyle=c; CX.textAlign=a; CX.textBaseline='middle';
+  if(LANG==='ar') CX.direction='rtl';
+  CX.fillText(s,x,y);
+  CX.direction='ltr';
+  if(shadow) CX.shadowBlur=0;
+}
+
+// Legacy txt (always FR font, used in drawing helpers)
+function txt(s,x,y,sz,c,a='center',fw='400',shadow=false){
+  if(shadow){CX.shadowBlur=20;CX.shadowColor='rgba(0,0,0,.8)';}
+  CX.font=`${fw} ${sz}px Georgia,serif`; CX.fillStyle=c; CX.textAlign=a; CX.textBaseline='middle'; CX.fillText(s,x,y);
+  if(shadow) CX.shadowBlur=0;
+}
+
+// Wrap text on canvas, return final Y
+function wrapFill(text,cx2,y,maxW,lh){
+  const words=text.split(' '); let line='',yy=y;
+  CX.textBaseline='middle';
+  for(let i=0;i<words.length;i++){
+    const test=line+(line?' ':'')+words[i];
+    if(CX.measureText(test).width>maxW&&line){ CX.fillText(line,cx2,yy); line=words[i]; yy+=lh; }
+    else line=test;
+  }
+  if(line) CX.fillText(line,cx2,yy);
+  return yy;
+}
+
+// ── Particles ─────────────────────────────────────────────────────────────
+const PCOLS=['#4CC9F0','#F72585','#06D6A0','#E9C46A','#FF6B6B','#C77DFF','#FFB703','#80FFDB'];
+class P {
+  constructor(x,y,vx,vy,r,c,life,shape=null){
+    this.x=x;this.y=y;this.vx=vx;this.vy=vy;this.r=r;this.c=c;
+    this.life=life;this.maxLife=life;
+    this.sh=shape??Math.random();
+    this.ag=Math.random()*6.28; this.da=(Math.random()-.5)*.04;
+  }
+  update(){ this.x+=this.vx; this.y+=this.vy; this.ag+=this.da; this.life--; }
+  get dead(){ return this.life<=0||this.x<-80||this.x>W+80||this.y<-80||this.y>H+80; }
+  draw(){
+    const a=Math.min(1,this.life/50)*.9;
+    CX.save(); CX.globalAlpha=a;
+    if(this.sh<.45){
+      CX.shadowBlur=6; CX.shadowColor=this.c;
+      circ(this.x,this.y,this.r,this.c); CX.shadowBlur=0;
+    } else if(this.sh<.72){
+      CX.translate(this.x,this.y); CX.rotate(this.ag);
+      CX.fillStyle=this.c; CX.fillRect(-this.r,-this.r*.5,this.r*2,this.r);
+    } else {
+      CX.translate(this.x,this.y); CX.rotate(this.ag);
+      CX.strokeStyle=this.c; CX.lineWidth=this.r*.5;
+      CX.beginPath(); CX.moveTo(-this.r*3,0); CX.lineTo(this.r*3,0); CX.stroke();
+    }
+    CX.restore();
+  }
+}
+let parts=[];
+function addP(x,y,vx,vy,r,c,life){ parts.push(new P(x,y,vx,vy,r,c,life)); }
+
+// ── Drawing helpers ────────────────────────────────────────────────────────
+function drawSun(x,y,r,a=1){
+  CX.save(); CX.globalAlpha=a;
+  CX.strokeStyle='rgba(255,230,120,.2)'; CX.lineWidth=2;
+  for(let i=0;i<12;i++){
+    const ag=i/12*Math.PI*2, r2=r+15+Math.sin(t*.02+i)*.5;
+    CX.beginPath(); CX.moveTo(x+Math.cos(ag)*(r+4),y+Math.sin(ag)*(r+4));
+    CX.lineTo(x+Math.cos(ag)*r2,y+Math.sin(ag)*r2); CX.stroke();
+  }
+  CX.shadowBlur=40; CX.shadowColor='rgba(255,220,80,.5)';
+  circ(x,y,r,'rgba(255,240,160,.95)');
+  CX.shadowBlur=0; CX.restore();
+}
+
+function drawOcean(yStart,yEnd,deep=false,waveAmp=null){
+  const wa=waveAmp??H*.012;
+  const g=CX.createLinearGradient(0,yStart,0,yEnd);
+  if(deep){ g.addColorStop(0,'#0096C7'); g.addColorStop(1,'#03045E'); }
+  else     { g.addColorStop(0,'#48CAE4'); g.addColorStop(.5,'#0096C7'); g.addColorStop(1,'#023E8A'); }
+  CX.fillStyle=g; CX.fillRect(0,yStart,W,yEnd-yStart);
+  CX.save(); CX.globalAlpha=.08;
+  for(let i=0;i<6;i++){
+    const yy=yStart+i*(yEnd-yStart)/6;
+    CX.strokeStyle='#fff'; CX.lineWidth=1;
+    CX.beginPath(); CX.moveTo(0,yy);
+    for(let x2=0;x2<=W;x2+=12) CX.lineTo(x2,yy+Math.sin((x2/W)*Math.PI*6+t*(.03+i*.008))*wa*.6);
+    CX.stroke();
+  }
+  CX.restore();
+  for(let l=0;l<3;l++){
+    CX.save(); CX.globalAlpha=.18-l*.04;
+    CX.fillStyle=l===0?'#90E0EF':'#CAF0F8';
+    CX.beginPath(); CX.moveTo(0,yStart);
+    for(let x2=0;x2<=W;x2+=8) CX.lineTo(x2,yStart+Math.sin((x2/W)*Math.PI*4+t*(.04+l*.01))*wa*(1-l*.2));
+    CX.lineTo(W,yStart-wa*2); CX.lineTo(0,yStart-wa*2); CX.closePath(); CX.fill();
+    CX.restore();
+  }
+}
+
+function drawBeach(sandY,seaY){
+  const sky=CX.createLinearGradient(0,LB(),0,sandY);
+  sky.addColorStop(0,'#4fc3f7'); sky.addColorStop(1,'#b3e5fc');
+  CX.fillStyle=sky; CX.fillRect(0,LB(),W,sandY-LB());
+  const sand=CX.createLinearGradient(0,sandY,0,H-LB());
+  sand.addColorStop(0,'#f9d984'); sand.addColorStop(1,'#e8c44a');
+  CX.fillStyle=sand; CX.fillRect(0,sandY,W,H-LB()-sandY);
+  CX.save(); CX.globalAlpha=.06;
+  for(let i=0;i<40;i++){
+    const sx=((i*137.5)%100/100)*W, sy=sandY+((i*73)%100/100)*(H-LB()-sandY);
+    CX.fillStyle='#a07830'; CX.beginPath(); CX.ellipse(sx,sy,8+i%5,3,Math.PI*.2,0,Math.PI*2); CX.fill();
+  }
+  CX.restore();
+  drawOcean(seaY,H-LB());
+}
+
+function drawFish(x,y,dir,sc2,col='#2E86AB'){
+  CX.save(); CX.translate(x,y); CX.scale(dir*sc2,sc2);
+  CX.fillStyle=col; CX.beginPath(); CX.ellipse(0,0,24,10,0,0,Math.PI*2); CX.fill();
+  CX.fillStyle=col+'88'; CX.beginPath(); CX.moveTo(-20,0); CX.lineTo(-34,-12); CX.lineTo(-34,12); CX.closePath(); CX.fill();
+  CX.fillStyle='#fff'; CX.beginPath(); CX.arc(13,0,5,0,Math.PI*2); CX.fill();
+  CX.fillStyle='#111'; CX.beginPath(); CX.arc(14,0,3,0,Math.PI*2); CX.fill();
+  CX.fillStyle='#fff'; CX.beginPath(); CX.arc(15,-1,1,0,Math.PI*2); CX.fill();
+  CX.fillStyle=col+'66'; CX.beginPath(); CX.moveTo(0,-10); CX.lineTo(8,-20); CX.lineTo(16,-10); CX.closePath(); CX.fill();
+  CX.restore();
+}
+
+function drawBottle(x,y,a=1,tilt=0){
+  CX.save(); CX.translate(x,y); CX.rotate(tilt); CX.globalAlpha=a;
+  CX.fillStyle='rgba(100,200,255,.55)'; CX.strokeStyle='rgba(100,200,255,.8)'; CX.lineWidth=1.5;
+  rr(-10,-24,20,40,5); CX.fill(); CX.stroke();
+  CX.fillStyle='rgba(100,200,255,.55)';
+  rr(-5,-34,10,14,3); CX.fill(); CX.stroke();
+  CX.fillStyle='rgba(255,80,80,.8)'; rr(-6,-40,12,8,2); CX.fill();
+  CX.fillStyle='rgba(255,255,255,.3)'; rr(-8,-18,16,18,3); CX.fill();
+  CX.fillStyle='rgba(60,180,255,.3)'; CX.fillRect(-8,-5,16,18);
+  CX.restore();
+}
+
+function drawMicroChar(x,y,sz,a=1,wobble=0){
+  if(!imgLoaded) return;
+  CX.save(); CX.globalAlpha=a;
+  CX.shadowBlur=30; CX.shadowColor='rgba(76,201,240,.5)';
+  CX.translate(x,y);
+  if(wobble) CX.rotate(Math.sin(t*.06)*wobble);
+  CX.drawImage(MICRO_IMG,-sz/2,-sz/2,sz,sz);
+  CX.shadowBlur=0; CX.restore();
+}
+
+function drawCoralReef(yBase){
+  const corals=['#FF6B6B','#FF9A3C','#F72585','#E9C46A','#06D6A0'];
+  for(let i=0;i<12;i++){
+    const cx2=W*(.04+i*.08)+Math.sin(i*2.1)*20;
+    const ch=H*(.06+((i*73)%100/100)*.1);
+    const col=corals[i%5];
+    CX.save(); CX.strokeStyle=col; CX.lineWidth=3+i%3;
+    CX.shadowBlur=10; CX.shadowColor=col;
+    CX.beginPath(); CX.moveTo(cx2,yBase);
+    CX.quadraticCurveTo(cx2-15,yBase-ch*.5,cx2,yBase-ch); CX.stroke();
+    CX.beginPath(); CX.moveTo(cx2,yBase-ch*.4);
+    CX.quadraticCurveTo(cx2+20,yBase-ch*.6,cx2+12,yBase-ch*.8); CX.stroke();
+    CX.beginPath(); CX.moveTo(cx2,yBase-ch*.6);
+    CX.quadraticCurveTo(cx2-18,yBase-ch*.75,cx2-10,yBase-ch*.9); CX.stroke();
+    CX.shadowBlur=0; CX.restore();
+  }
+}
+
+function drawTurtle(x,y,sc2,a=1){
+  CX.save(); CX.translate(x,y); CX.scale(sc2,sc2); CX.globalAlpha=a;
+  CX.fillStyle='#2d6a4f'; CX.beginPath(); CX.ellipse(0,0,22,16,0,0,Math.PI*2); CX.fill();
+  CX.strokeStyle='#1b4332'; CX.lineWidth=1;
+  for(let i=0;i<4;i++){ CX.beginPath(); CX.arc(0,0,6+i*4,-.5,Math.PI+.5); CX.stroke(); }
+  CX.fillStyle='#52b788'; CX.beginPath(); CX.ellipse(22,0,9,7,0,0,Math.PI*2); CX.fill();
+  CX.fillStyle='#111'; circ(26,-2,2,'#111');
+  CX.fillStyle='#52b788';
+  CX.beginPath(); CX.ellipse(-8,-14,8,5,-.4,0,Math.PI*2); CX.fill();
+  CX.beginPath(); CX.ellipse(-8,14,8,5,.4,0,Math.PI*2); CX.fill();
+  CX.restore();
+}
+
+function drawDolphin(x,y,sc2,a=1){
+  CX.save(); CX.translate(x,y); CX.scale(sc2,sc2); CX.globalAlpha=a;
+  CX.fillStyle='#6096ba';
+  CX.beginPath();
+  CX.moveTo(-35,0); CX.bezierCurveTo(-20,-18,20,-18,35,0);
+  CX.bezierCurveTo(20,10,-20,10,-35,0); CX.closePath(); CX.fill();
+  CX.fillStyle='#c5dff8';
+  CX.beginPath(); CX.ellipse(0,6,22,7,0,0,Math.PI*2); CX.fill();
+  CX.fillStyle='#4a7c99';
+  CX.beginPath(); CX.moveTo(5,-15); CX.lineTo(15,-28); CX.lineTo(20,-14); CX.closePath(); CX.fill();
+  CX.beginPath(); CX.moveTo(-30,0); CX.lineTo(-42,-10); CX.lineTo(-45,-2); CX.lineTo(-42,10); CX.closePath(); CX.fill();
+  CX.fillStyle='#111'; circ(24,-4,3,'#111');
+  CX.fillStyle='#fff'; circ(25,-5,1.2,'#fff');
+  CX.restore();
+}
+
+function drawFamily(cx2,tableY,a=1){
+  CX.save(); CX.globalAlpha=a;
+  const room=CX.createLinearGradient(0,LB(),0,H-LB());
+  room.addColorStop(0,'#3d1a08'); room.addColorStop(1,'#8b4513');
+  CX.fillStyle=room; CX.fillRect(0,LB(),W,CH());
+  CX.fillStyle='#7c4a1a'; rr(W*.15,tableY,W*.7,H*.04,6); CX.fill();
+  CX.fillStyle='#5c3410';
+  for(let i=0;i<2;i++) CX.fillRect(W*(i===0?.2:.75),tableY+H*.04,W*.04,H*.18);
+  [W*.3,W*.5,W*.7].forEach(px=>{
+    CX.fillStyle='#e8e8e8'; CX.beginPath(); CX.ellipse(px,tableY+H*.02,30,9,0,0,Math.PI*2); CX.fill();
+    CX.fillStyle='#fff'; CX.beginPath(); CX.ellipse(px,tableY+H*.01,23,7,0,0,Math.PI*2); CX.fill();
+    CX.fillStyle='#E9C46A'; CX.beginPath(); CX.ellipse(px,tableY,20,6,0,0,Math.PI*2); CX.fill();
+  });
+  CX.fillStyle='#e8e8e8'; CX.fillRect(W*.5-4,tableY-H*.05,8,H*.05);
+  CX.shadowBlur=20; CX.shadowColor='rgba(255,200,50,.8)'; circ(W*.5,tableY-H*.05,5,'rgba(255,220,80,.9)'); CX.shadowBlur=0;
+  const figs=[{x:W*.28,h:H*.22,col:'#c8815a'},{x:W*.5,h:H*.18,col:'#e8b080'},{x:W*.72,h:H*.22,col:'#a06030'}];
+  figs.forEach(f=>{
+    const fy=tableY-f.h;
+    CX.fillStyle=f.col; circ(f.x,fy,H*.05,f.col);
+    CX.fillStyle=f.col+'cc'; rr(f.x-H*.04,fy+H*.05,H*.08,f.h*.5,H*.02); CX.fill();
+    CX.strokeStyle='rgba(0,0,0,.3)'; CX.lineWidth=2;
+    CX.beginPath(); CX.arc(f.x,fy+H*.01,H*.02,0,Math.PI); CX.stroke();
+    CX.fillStyle='rgba(0,0,0,.5)'; circ(f.x-H*.015,fy-H*.005,3,'rgba(0,0,0,.5)'); circ(f.x+H*.015,fy-H*.005,3,'rgba(0,0,0,.5)');
+  });
+  CX.save(); CX.globalAlpha=.12;
+  const warmLight=CX.createRadialGradient(W*.5,tableY,0,W*.5,tableY,W*.4);
+  warmLight.addColorStop(0,'rgba(255,200,80,.8)'); warmLight.addColorStop(1,'transparent');
+  CX.fillStyle=warmLight; CX.fillRect(0,LB(),W,CH());
+  CX.restore(); CX.restore();
+}
+
+function drawHopeScene(progress){
+  const sky=CX.createLinearGradient(0,LB(),0,H*.6);
+  sky.addColorStop(0,'#29b6f6'); sky.addColorStop(1,'#81d4fa');
+  CX.fillStyle=sky; CX.fillRect(0,LB(),W,H*.55);
+  CX.fillStyle='#f9d984'; CX.fillRect(0,H*.65,W,H*.35);
+  drawOcean(H*.55,H*.68);
+  drawSun(W*.85,LB()+H*.06,H*.04);
+  const kids=[{x:W*.25,c:'#c8815a'},{x:W*.45,c:'#7c5030'},{x:W*.65,c:'#e8b080'}];
+  kids.forEach((k,i)=>{
+    const delay=i*.25, kp=Math.min(1,(progress-delay)*4);
+    if(kp<=0) return;
+    CX.save(); CX.globalAlpha=kp;
+    const ky=H*.62, bounce=Math.abs(Math.sin(t*.06+i*1.2))*H*.015;
+    CX.fillStyle=k.c+'dd'; rr(k.x-H*.025,ky-H*.08-bounce,H*.05,H*.1,H*.015); CX.fill();
+    circ(k.x,ky-H*.12-bounce,H*.035,k.c);
+    CX.strokeStyle='rgba(0,0,0,.3)'; CX.lineWidth=2;
+    CX.beginPath(); CX.arc(k.x,ky-H*.115-bounce,H*.013,0,Math.PI); CX.stroke();
+    CX.fillStyle='rgba(0,0,0,.35)'; circ(k.x-H*.01,ky-H*.125-bounce,2.5,'rgba(0,0,0,.35)'); circ(k.x+H*.01,ky-H*.125-bounce,2.5,'rgba(0,0,0,.35)');
+    CX.strokeStyle=k.c; CX.lineWidth=4; CX.lineCap='round';
+    CX.beginPath(); CX.moveTo(k.x-H*.025,ky-H*.07-bounce); CX.lineTo(k.x-H*.06,ky-H*.11-bounce+Math.sin(t*.08+i)*.01*H); CX.stroke();
+    CX.beginPath(); CX.moveTo(k.x+H*.025,ky-H*.07-bounce); CX.lineTo(k.x+H*.06,ky-H*.11-bounce+Math.sin(t*.08+i+1)*.01*H); CX.stroke();
+    CX.restore();
+  });
+  if(progress>.3){
+    const rp=Math.min(1,(progress-.3)*3);
+    CX.save(); CX.globalAlpha=rp;
+    const rx=W*.84,ry=H*.63;
+    CX.fillStyle='#06D6A0'; rr(rx-18,ry-35,36,40,5); CX.fill();
+    CX.fillStyle='#04a881'; rr(rx-20,ry-40,40,8,4); CX.fill();
+    CX.fillStyle='#fff'; CX.font='bold '+Math.floor(H*.025)+'px Arial'; CX.textAlign='center'; CX.textBaseline='middle'; CX.fillText('♻',rx,ry-15);
+    CX.restore();
+  }
+  if(progress>.5){
+    const bp=Math.min(1,(progress-.5)*3);
+    CX.save(); CX.globalAlpha=bp;
+    const bx=W*.15,by=H*.6;
+    CX.fillStyle='rgba(100,210,255,.7)'; CX.strokeStyle='rgba(80,180,230,.9)'; CX.lineWidth=2;
+    rr(bx-10,by-32,20,42,5); CX.fill(); CX.stroke();
+    rr(bx-5,by-40,10,12,3); CX.fill(); CX.stroke();
+    CX.fillStyle='rgba(50,120,200,.5)'; CX.fillRect(bx-8,by-18,16,24);
+    CX.fillStyle='rgba(255,100,100,.9)'; rr(bx-6,by-44,12,6,2); CX.fill();
+    CX.fillStyle='rgba(255,255,255,.7)'; CX.font='12px Arial'; CX.textAlign='center'; CX.textBaseline='middle'; CX.fillText('♥',bx,by-8);
+    CX.restore();
+  }
+}
+
+// ── UI Cards ───────────────────────────────────────────────────────────────
+function smallCard(a){
+  if(a<=0) return;
+  const sub=gsub();
+  const isAr=LANG==='ar';
+  const ty=H-LB()-H*.075;
+  const fsz=Math.min(W*.024,15);
+  CX.save(); CX.globalAlpha=a;
+  CX.font=`400 ${fsz}px ${isAr?"'Tajawal',Arial,sans-serif":"'Playfair Display',Georgia,serif"}`;
+  const bw=Math.min(CX.measureText(sub).width+52, W*.9);
+  CX.fillStyle='rgba(0,0,0,.62)';
+  rr(W/2-bw/2,ty-21,bw,42,11); CX.fill();
+  CX.strokeStyle='rgba(255,255,255,.08)'; CX.lineWidth=1;
+  rr(W/2-bw/2,ty-21,bw,42,11); CX.stroke();
+  CX.fillStyle='rgba(255,255,255,.93)';
+  CX.textAlign='center'; CX.textBaseline='middle';
+  if(isAr) CX.direction='rtl';
+  CX.fillText(sub,W/2,ty+1);
+  CX.direction='ltr';
+  CX.restore();
+}
+
+function factCard(a){
+  if(a<=0) return;
+  const d=gsd();
+  const fact=LANG==='ar'?d.fk_ar:d.fk_fr;
+  const isAr=LANG==='ar';
+  const bw=Math.min(W*.88,620);
+  const fsz=Math.min(W*.019,13);
+  const lh=fsz*1.65;
+  const maxW=bw-48;
+  // pre-measure lines
+  CX.font=`400 ${fsz}px ${isAr?"'Tajawal',Arial,sans-serif":"'Playfair Display',Georgia,serif"}`;
+  const words=fact.split(' '); let lines=[],line='';
+  for(const w of words){
+    const test=line+(line?' ':'')+w;
+    if(CX.measureText(test).width>maxW&&line){ lines.push(line); line=w; } else line=test;
+  }
+  if(line) lines.push(line);
+  const bh=Math.max(H*.07, lines.length*lh+30);
+  const by=H-LB()-H*.085-bh-8;
+  CX.save(); CX.globalAlpha=a;
+  // backdrop
+  CX.fillStyle='rgba(0,8,30,.75)';
+  CX.strokeStyle='rgba(76,201,240,.22)';
+  CX.lineWidth=1;
+  rr(W/2-bw/2,by,bw,bh,10); CX.fill(); CX.stroke();
+  // accent bar left
+  CX.fillStyle='rgba(76,201,240,.6)';
+  CX.fillRect(W/2-bw/2,by+8,3,bh-16);
+  // fact text
+  CX.font=`400 ${fsz}px ${isAr?"'Tajawal',Arial,sans-serif":"'Playfair Display',Georgia,serif"}`;
+  CX.fillStyle='rgba(180,230,255,.95)';
+  CX.textAlign='center'; CX.textBaseline='middle';
+  if(isAr) CX.direction='rtl';
+  const totalTH=lines.length*lh;
+  const startY=by+(bh-totalTH)/2+lh/2;
+  lines.forEach((l,i)=>CX.fillText(l,W/2,startY+i*lh-lh/2+8));
+  CX.direction='ltr';
+  // source label
+  CX.font=`400 ${Math.min(W*.013,9.5)}px Georgia,sans-serif`;
+  CX.fillStyle='rgba(255,255,255,.3)';
+  CX.textAlign='right'; CX.textBaseline='bottom';
+  CX.fillText(d.src, W/2+bw/2-10, by+bh-5);
+  CX.restore();
+}
+
+// ── Scenes ─────────────────────────────────────────────────────────────────
+const DURS=[6,7,8,9,9,8,8,8,8,12];
+let sc=0, scT=0, t=0;
+
+function s0(p){
+  drawBeach(H*.55,H*.62);
+  drawSun(W*.82,LB()+H*.08,H*.04);
+  CX.strokeStyle='rgba(0,0,0,.3)'; CX.lineWidth=1.5;
+  [[.2,.18],[.35,.14],[.55,.2]].forEach(([xf,yf],i)=>{
+    const gx=W*xf+(Math.sin(t*.015+i)*W*.04), gy=LB()+CH()*yf;
+    CX.beginPath(); CX.moveTo(gx,gy); CX.quadraticCurveTo(gx+8,gy-6,gx+16,gy); CX.stroke();
+    CX.beginPath(); CX.moveTo(gx,gy); CX.quadraticCurveTo(gx-8,gy-6,gx-16,gy); CX.stroke();
+  });
+  const a=clamp(p*3,0,1)*Math.min(1,(1-p)*5);
+  CX.save(); CX.globalAlpha=a;
+  CX.shadowBlur=25; CX.shadowColor='rgba(0,0,0,.5)';
+  const isAr=LANG==='ar';
+  CX.font=`700 ${Math.min(W*.1,80)}px ${isAr?"'Tajawal',Arial,sans-serif":"'Playfair Display',Georgia,serif"}`;
+  CX.fillStyle='#ffffff'; CX.textAlign='center'; CX.textBaseline='middle';
+  if(isAr){ CX.direction='rtl'; CX.fillText('مايكرو',W/2,CY()-H*.15); CX.direction='ltr'; }
+  else CX.fillText('MICRO',W/2,CY()-H*.15);
+  CX.shadowBlur=0; CX.globalAlpha=a*.8;
+  CX.font=`400 ${Math.min(W*.035,24)}px ${isAr?"'Tajawal',Arial,sans-serif":"'Playfair Display',Georgia,serif"}`;
+  CX.fillStyle='rgba(255,255,255,.9)'; CX.textAlign='center'; CX.textBaseline='middle';
+  if(isAr){ CX.direction='rtl'; CX.fillText('الرحلة الخفية',W/2,CY()); CX.direction='ltr'; }
+  else CX.fillText('LE VOYAGE INVISIBLE',W/2,CY());
+  CX.restore();
+  if(t%8===0 && parts.length<40) addP(Math.random()*W,H*.62,(Math.random()-.5)*.3,-(Math.random()*.3+.1),Math.random()*.8+.3,'rgba(200,240,255,.4)',200);
+  factCard(clamp(p*3-.5,0,1)*Math.min(1,(1-p)*5));
+  smallCard(clamp(p*3,0,1)*Math.min(1,(1-p)*5));
+}
+
+function s1(p){
+  drawBeach(H*.55,H*.62);
+  drawSun(W*.82,LB()+H*.08,H*.04);
+  const pa=clamp(p*4,0,1);
+  CX.save(); CX.globalAlpha=pa;
+  const px=W*.75, py=H*.55;
+  CX.fillStyle='rgba(50,30,10,.6)';
+  circ(px,py-H*.07,H*.03,'rgba(50,30,10,.6)');
+  CX.fillRect(px-H*.015,py-H*.04,H*.03,H*.09);
+  CX.fillRect(px-H*.035,py-H*.02,H*.07,H*.015);
+  CX.restore();
+  const bp=clamp((p-.1)/.8,0,1);
+  if(bp>0){
+    const bx=lerp(W*.72,W*.35,ease(bp)), by=lerp(H*.5,H*.62,ease(bp))-(Math.sin(bp*Math.PI))*H*.15;
+    drawBottle(bx,by,1,bp*Math.PI*.5-Math.PI*.1);
+  }
+  if(p>.85){
+    drawBottle(W*.35,H*.63,1,.3);
+    if(t%10===0) addP(W*.35+(Math.random()-.5)*20,H*.63,(Math.random()-.5)*.5,(Math.random()-.5)*.3,Math.random()*.6+.2,'rgba(200,220,255,.4)',80);
+  }
+  const ca=clamp(p*4-.5,0,1)*Math.min(1,(1-p)*6);
+  factCard(ca); smallCard(ca);
+}
+
+function s2(p){
+  drawOcean(LB(),H-LB(),false,H*.02);
+  CX.save(); CX.globalAlpha=.06;
+  for(let i=0;i<6;i++){
+    CX.fillStyle='rgba(150,220,255,1)';
+    CX.beginPath();
+    const rx=W*(.15+i*.14);
+    CX.moveTo(rx-20,LB()); CX.lineTo(rx+20,LB()); CX.lineTo(rx+60,H*.6); CX.lineTo(rx-60,H*.6); CX.closePath(); CX.fill();
+  }
+  CX.restore();
+  const bp=clamp(p*2,0,1);
+  const by=lerp(H*.3,H*.65,ease(bp));
+  const ba=lerp(1,.2,ease(bp));
+  const bscale=lerp(1,.4,ease(bp));
+  CX.save(); CX.scale(1+(1-bscale)*.2,1); drawBottle(W*.5,by,ba); CX.restore();
+  if(p>.3&&t%3===0){
+    const angle=Math.random()*Math.PI*2;
+    addP(W*.5+Math.cos(angle)*20,by+Math.sin(angle)*15,Math.cos(angle)*(Math.random()+.3),Math.sin(angle)*(Math.random()+.3),Math.random()*3+.8,PCOLS[Math.floor(Math.random()*8)],220+Math.random()*100);
+  }
+  if(p>.6 && scT%4===0&&parts.length<120) addP(W*.5+(Math.random()-.5)*80,by+(Math.random()-.5)*40,(Math.random()-.5)*1.5,(Math.random()-.5)*1.5,Math.random()*2+.5,PCOLS[Math.floor(Math.random()*8)],180);
+  const ca=clamp(p*3-.5,0,1)*Math.min(1,(1-p)*4);
+  factCard(ca); smallCard(ca);
+}
+
+function s3(p){
+  drawOcean(LB(),H-LB(),true,H*.018);
+  const mSz=Math.min(W*.25,H*.32);
+  const mPulse=1+Math.sin(t*.04)*.04;
+  const mA=clamp(p*3,0,1)*clamp((1-p)*5,0,1);
+  drawMicroChar(W*.5,CY()-.02*H,mSz*mPulse,mA,.03);
+  if(p>.35){
+    const np=clamp((p-.35)/.5,0,1);
+    const count=Math.floor(np*8)+1;
+    for(let i=0;i<count;i++){
+      const ag=i/count*Math.PI*2+t*.005, rad=H*(.12+i*.018);
+      const cx2=W*.5+Math.cos(ag)*rad, cy2=CY()+Math.sin(ag)*rad*.5;
+      drawMicroChar(cx2,cy2,mSz*(.25+i*.015),mA*.8,.05);
+    }
+  }
+  if(t%3===0 && parts.length<150) addP(Math.random()*W,H*.4+Math.random()*H*.4,(Math.random()-.5)*1.5,(Math.random()-.5)*1.5,Math.random()*2.5+.5,PCOLS[Math.floor(Math.random()*8)],200);
+  const ca=clamp(p*4-.3,0,1)*Math.min(1,(1-p)*4);
+  factCard(ca); smallCard(ca);
+}
+
+function s4(p){
+  drawOcean(LB(),H-LB(),false,H*.015);
+  if(p>.1) drawCoralReef(H-LB()-H*.02);
+  const ta=clamp(p*4,0,1);
+  const tx=((t*.8+200)%(W+120))-60;
+  drawTurtle(tx,H*.55,1.2,ta);
+  if(t%5===0 && ta>.5) addP(tx+20,H*.55,(Math.random()-.5)*.8,-(Math.random()*.3+.1),Math.random()*1.5+.5,PCOLS[Math.floor(Math.random()*8)],120);
+  const da=clamp((p-.2)*5,0,1);
+  const dx=((t*.6+W*.6)%(W+160))-80;
+  drawDolphin(dx,H*.38,1.1,da);
+  [[.2,.58,1,.8],[.6,.65,-1,.7],[.4,.72,1,.6],[.75,.5,-1,.9]].forEach(([xf,yf,d,sc2],i)=>{
+    const fx=((xf*W+t*(.5+i*.25)*d+W*2)%W);
+    drawFish(fx,H*yf,d,sc2);
+    CX.save(); CX.globalAlpha=.6;
+    for(let j=0;j<3;j++) circ(fx+(j-1)*6*d,H*yf,2,PCOLS[(j+i)%8],4);
+    CX.restore();
+  });
+  if(t%2===0 && parts.length<200) addP(Math.random()*W,LB()+Math.random()*CH(),(Math.random()-.5)*1,(Math.random()-.5)*1,Math.random()*2+.5,PCOLS[Math.floor(Math.random()*8)],250);
+  const ca=clamp(p*4-.2,0,1)*Math.min(1,(1-p)*4);
+  factCard(ca); smallCard(ca);
+}
+
+function s5(p){
+  drawOcean(LB(),H*.55,false);
+  CX.fillStyle='rgba(0,20,50,.8)'; CX.fillRect(0,H*.55,W,H-LB()-H*.55);
+  const stages=[
+    {x:W*.1,y:H*.48,label_fr:'Plancton',label_ar:'عوالق',fn:()=>{ for(let j=0;j<5;j++) circ(W*.1+Math.cos(t*.04+j*1.2)*12,H*.48+Math.sin(t*.04+j*1.2)*8,5,PCOLS[j%8],6); }},
+    {x:W*.28,y:H*.5,label_fr:'Petit poisson',label_ar:'سمكة صغيرة',fn:()=>drawFish(W*.28,H*.5,1,.7,'#5ba4cf')},
+    {x:W*.5,y:H*.47,label_fr:'Grand poisson',label_ar:'سمكة كبيرة',fn:()=>drawFish(W*.5,H*.47,1,1.4,'#1a6b9a')},
+    {x:W*.72,y:H*.51,label_fr:'Thon / Saumon',label_ar:'تونة / سلمون',fn:()=>drawFish(W*.72,H*.51,-1,2,'#1a3f6b')},
+    {x:W*.9,y:H*.48,label_fr:'Notre assiette',label_ar:'طبقنا',fn:()=>{
+      CX.fillStyle='#e8e8e8'; CX.beginPath(); CX.ellipse(W*.9,H*.5,30,9,0,0,Math.PI*2); CX.fill();
+      CX.fillStyle='#E9C46A'; CX.beginPath(); CX.ellipse(W*.9,H*.47,22,6,0,0,Math.PI*2); CX.fill();
+      for(let j=0;j<5;j++) circ(W*.9+(j-2)*8,H*.47,2.5,PCOLS[j],5);
+    }},
+  ];
+  const isAr=LANG==='ar';
+  stages.forEach((s,i)=>{
+    const a=clamp((p-i*.15)/.18,0,1); if(a<=0) return;
+    CX.save(); CX.globalAlpha=a; s.fn();
+    CX.globalAlpha=a*.8;
+    const lbl=isAr?s.label_ar:s.label_fr;
+    CX.font=`400 ${Math.min(W*.02,12)}px ${isAr?"'Tajawal',Arial,sans-serif":"Georgia,serif"}`;
+    CX.fillStyle='rgba(255,255,255,.8)'; CX.textAlign='center'; CX.textBaseline='middle';
+    if(isAr) CX.direction='rtl';
+    CX.fillText(lbl,s.x,s.y+H*.08);
+    CX.direction='ltr';
+    if(i<stages.length-1){
+      const na=clamp((p-(i+1)*.15)/.18,0,1); if(na<=0){ CX.restore(); return; }
+      CX.globalAlpha=na*.6; CX.strokeStyle='rgba(255,255,255,.5)'; CX.lineWidth=1.5;
+      CX.beginPath(); CX.moveTo(s.x+35,s.y); CX.lineTo(stages[i+1].x-38,stages[i+1].y); CX.stroke();
+      CX.fillStyle='rgba(255,255,255,.5)'; const ax=stages[i+1].x-38,ay=stages[i+1].y;
+      CX.beginPath(); CX.moveTo(ax,ay); CX.lineTo(ax-8,ay-5); CX.lineTo(ax-8,ay+5); CX.closePath(); CX.fill();
+    }
+    CX.restore();
+  });
+  if(p>.7){
+    const a2=clamp((p-.7)/.2,0,1);
+    CX.save(); CX.globalAlpha=a2*.7;
+    const msg=isAr?'التركيز البيولوجي × 1,000,000':'Les toxines se concentrent × 1 000 000';
+    CX.font=`400 ${Math.min(W*.025,16)}px ${isAr?"'Tajawal',Arial,sans-serif":"Georgia,serif"}`;
+    CX.fillStyle='#FF6B6B'; CX.textAlign='center'; CX.textBaseline='middle';
+    if(isAr) CX.direction='rtl';
+    CX.fillText(msg,W/2,H*.28);
+    CX.direction='ltr';
+    CX.restore();
+  }
+  const ca=clamp(p*4-.2,0,1)*Math.min(1,(1-p)*4);
+  factCard(ca); smallCard(ca);
+}
+
+function s6(p){
+  drawFamily(W*.5,H*.58,1);
+  if(p>.4&&t%5===0){
+    const px=W*(.3+Math.random()*.4), py=LB()+Math.random()*CH()*.4;
+    addP(px,py,(Math.random()-.5)*.3,(Math.random()*.5+.2),Math.random()*1.5+.4,PCOLS[Math.floor(Math.random()*8)]+99,100);
+  }
+  if(p>.6){
+    const rv=clamp((p-.6)/.3,0,1);
+    CX.save(); CX.globalAlpha=rv*.6;
+    for(let i=0;i<5;i++) circ(W*(.3+i*.1),H*.57,3,PCOLS[i],8);
+    CX.restore();
+  }
+  const ca=clamp(p*4-.2,0,1)*Math.min(1,(1-p)*4);
+  factCard(ca); smallCard(ca);
+}
+
+function s7(p){
+  bgG('#150022','#280040');
+  CX.save();
+  const grd=CX.createRadialGradient(W*.5,CY(),0,W*.5,CY(),H*.4);
+  grd.addColorStop(0,'rgba(247,37,133,.12)'); grd.addColorStop(1,'transparent');
+  CX.fillStyle=grd; CX.fillRect(0,LB(),W,CH()); CX.restore();
+  const sa=clamp(p*3,0,1);
+  CX.save(); CX.globalAlpha=sa;
+  CX.strokeStyle='rgba(247,37,133,.5)'; CX.lineWidth=2;
+  CX.fillStyle='rgba(247,37,133,.08)';
+  CX.beginPath();
+  CX.moveTo(W*.35,CY()-H*.12); CX.bezierCurveTo(W*.22,CY()-H*.08,W*.2,CY()+H*.05,W*.3,CY()+H*.12);
+  CX.bezierCurveTo(W*.4,CY()+H*.18,W*.62,CY()+H*.16,W*.68,CY()+H*.1);
+  CX.bezierCurveTo(W*.76,CY()+H*.03,W*.74,CY()-H*.1,W*.62,CY()-H*.14);
+  CX.bezierCurveTo(W*.5,CY()-H*.2,W*.42,CY()-H*.18,W*.35,CY()-H*.12);
+  CX.closePath(); CX.fill(); CX.stroke();
+  const bH=H*.55,bW=H*.22,bx=W*.5,by=CY();
+  CX.fillStyle='rgba(247,37,133,.04)'; CX.strokeStyle='rgba(247,37,133,.3)'; CX.lineWidth=1.5;
+  rr(bx-bW/2,by-bH*.38,bW,bH*.72,bW*.18); CX.fill(); CX.stroke();
+  CX.restore();
+  if(p>.25){
+    const ma=clamp((p-.25)/.2,0,1);
+    drawMicroChar(W*.5,CY(),H*.12*ma,ma,.04);
+  }
+  if(t%4===0 && p>.3) addP(W*(.35+Math.random()*.3),CY()-H*.1+Math.random()*H*.2,(Math.random()-.5)*.5,(Math.random()-.5)*.5,Math.random()*2+.5,PCOLS[Math.floor(Math.random()*8)],120);
+  if(p>.5){
+    const la=clamp((p-.5)/.2,0,1);
+    const isAr=LANG==='ar';
+    const organs=isAr?
+      [[W*.32,CY()-H*.06,'رئتان','#ADE8F4'],[W*.6,CY()-H*.04,'قلب','#FF6B6B'],[W*.5,CY()+H*.06,'معدة','#E9C46A'],[W*.5,CY()-H*.22,'دماغ','#C77DFF']]:
+      [[W*.32,CY()-H*.06,'Poumons','#ADE8F4'],[W*.6,CY()-H*.04,'Cœur','#FF6B6B'],[W*.5,CY()+H*.06,'Estomac','#E9C46A'],[W*.5,CY()-H*.22,'Cerveau','#C77DFF']];
+    organs.forEach(([ox,oy,ol,oc])=>{
+      CX.save(); CX.globalAlpha=la*.8;
+      CX.shadowBlur=12; CX.shadowColor=oc; circ(ox,oy,4,oc); CX.shadowBlur=0;
+      CX.font=`400 ${Math.min(W*.02,12)}px ${isAr?"'Tajawal',Arial,sans-serif":"Georgia,serif"}`;
+      CX.fillStyle=oc; CX.textAlign=ox<W*.5?'right':'left'; CX.textBaseline='middle';
+      if(isAr) CX.direction='rtl';
+      CX.fillText(ol,ox+(ox<W*.5?-38:38),oy);
+      CX.direction='ltr';
+      CX.restore();
+    });
+  }
+  const ca=clamp(p*4-.2,0,1)*Math.min(1,(1-p)*4);
+  factCard(ca); smallCard(ca);
+}
+
+function drawStars(n=60,yMax=.9){
+  CX.save(); CX.fillStyle='#fff';
+  for(let i=0;i<n;i++){
+    const x=((i*137.5)%100/100)*W, y=LB()+((i*73.3)%100/100)*(H-LB()*2)*yMax;
+    CX.globalAlpha=.1+Math.sin(t*.015+i)*.08;
+    CX.beginPath(); CX.arc(x,y,.9,0,Math.PI*2); CX.fill();
+  }
+  CX.restore();
+}
+
+function s8(p){
+  bgG('#000510','#001428');
+  drawStars(100,.95);
+  if(p>.2){
+    const ea=clamp((p-.2)/.4,0,1);
+    CX.save(); CX.globalAlpha=ea*.6;
+    CX.shadowBlur=40; CX.shadowColor='rgba(0,150,255,.4)';
+    const er=H*.22;
+    const earthG=CX.createRadialGradient(W*.5,H-LB()-er*.7,0,W*.5,H-LB()-er*.7,er);
+    earthG.addColorStop(0,'#1a6b9a'); earthG.addColorStop(.4,'#2E86AB'); earthG.addColorStop(.7,'#48CAE4'); earthG.addColorStop(1,'#0096C7');
+    CX.fillStyle=earthG; CX.beginPath(); CX.arc(W*.5,H-LB()-er*.7,er,0,Math.PI*2); CX.fill();
+    CX.fillStyle='rgba(52,180,100,.7)';
+    [[.3,.4,.12,.1],[.55,.5,.08,.09],[.4,.6,.06,.05]].forEach(([lx,ly,lw,lh])=>{
+      CX.beginPath(); CX.ellipse(W*.5-er*(.5-lx),H-LB()-er*(.5+(.5-ly)),er*lw,er*lh,Math.random()*.5,0,Math.PI*2); CX.fill();
+    });
+    CX.shadowBlur=0; CX.restore();
+  }
+  const ma=clamp(p*2,0,1)*Math.min(1,(1-p)*5);
+  const isAr=LANG==='ar';
+  CX.save(); CX.globalAlpha=ma;
+  CX.shadowBlur=50; CX.shadowColor='rgba(255,100,100,.5)';
+  if(isAr){
+    CX.font=`700 ${Math.min(W*.048,38)}px 'Tajawal',Arial,sans-serif`;
+    CX.fillStyle='#ffffff'; CX.textAlign='center'; CX.textBaseline='middle'; CX.direction='rtl';
+    CX.fillText('"ما نرميه يعود إلينا دائماً."',W/2,CY());
+    CX.direction='ltr';
+  } else {
+    CX.font=`700 ${Math.min(W*.05,38)}px 'Playfair Display',Georgia,serif`;
+    CX.fillStyle='#ffffff'; CX.textAlign='center'; CX.textBaseline='middle';
+    CX.fillText('"Ce que nous jetons',W/2,CY()-H*.08);
+    CX.fillStyle='#FF6B6B';
+    CX.fillText('revient toujours."',W/2,CY()+H*.04);
+  }
+  CX.shadowBlur=0; CX.restore();
+  const ca=clamp(p*2-.3,0,1)*Math.min(1,(1-p)*5);
+  factCard(ca); smallCard(ca);
+}
+
+function s9(p){
+  drawHopeScene(p);
+  if(t%4===0 && parts.length<80) addP(Math.random()*W,H*(.55+Math.random()*.1),(Math.random()-.5)*.5,-(Math.random()*.8+.3),Math.random()*1.5+.5,PCOLS[Math.floor(Math.random()*8)],150);
+  const a=clamp(p*2,0,1);
+  const isAr=LANG==='ar';
+  CX.save(); CX.globalAlpha=a;
+  CX.shadowBlur=30; CX.shadowColor='rgba(6,214,160,.6)';
+  const t1=isAr?'معاً، نغيّر مسار الأمور.':'Ensemble, changeons le cours.';
+  CX.font=`700 ${Math.min(W*.048,36)}px ${isAr?"'Tajawal',Arial,sans-serif":"'Playfair Display',Georgia,serif"}`;
+  CX.fillStyle='#ffffff'; CX.textAlign='center'; CX.textBaseline='middle';
+  if(isAr) CX.direction='rtl';
+  CX.fillText(t1,W/2,LB()+H*.08);
+  CX.shadowBlur=0;
+  if(p>.4){
+    CX.globalAlpha=clamp((p-.4)/.3,0,1)*.75;
+    const t2=isAr?'كل تصرف يُحدث فرقاً.':'Chaque geste compte.';
+    CX.font=`400 ${Math.min(W*.03,20)}px ${isAr?"'Tajawal',Arial,sans-serif":"'Playfair Display',Georgia,serif"}`;
+    CX.fillStyle='rgba(200,255,230,.9)';
+    CX.fillText(t2,W/2,LB()+H*.15);
+  }
+  if(p>.7){
+    CX.globalAlpha=clamp((p-.7)/.2,0,1)*.65;
+    const t3=isAr?'نحمي المحيط لأبنائنا.':'Protégeons l\'océan pour nos enfants.';
+    CX.font=`400 ${Math.min(W*.025,16)}px ${isAr?"'Tajawal',Arial,sans-serif":"'Playfair Display',Georgia,serif"}`;
+    CX.fillStyle='rgba(200,255,230,.8)';
+    CX.fillText(t3,W/2,LB()+H*.21);
+  }
+  CX.direction='ltr';
+  CX.restore();
+  const ca=clamp(p*2-.2,0,1);
+  factCard(ca); smallCard(ca);
+}
+
+const SCENES=[s0,s1,s2,s3,s4,s5,s6,s7,s8,s9];
+
+// ── Letterbox & Progress ──────────────────────────────────────────────────
+function drawLetterbox(){
+  CX.fillStyle='#000'; CX.fillRect(0,0,W,LB()); CX.fillRect(0,H-LB(),W,LB());
+}
+function drawProgressBar(){
+  const total=DURS.reduce((a,b)=>a+b,0);
+  const elapsed=DURS.slice(0,sc).reduce((a,b)=>a+b,0)+scT/60;
+  const pr=elapsed/total;
+  CX.fillStyle='rgba(255,255,255,.12)'; CX.fillRect(W*.05,H-LB()*.55,W*.9,2);
+  CX.fillStyle='rgba(255,255,255,.65)'; CX.fillRect(W*.05,H-LB()*.55,W*.9*pr,2);
+  const isAr=LANG==='ar';
+  CX.save(); CX.globalAlpha=.4;
+  CX.font=`400 ${Math.min(W*.018,11)}px ${isAr?"'Tajawal',Arial,sans-serif":"Georgia,serif"}`;
+  CX.fillStyle='#fff'; CX.textAlign='center'; CX.textBaseline='middle';
+  if(isAr) CX.direction='rtl';
+  CX.fillText(gnm(),W*.5,H-LB()*.25);
+  CX.direction='ltr';
+  CX.restore();
+  for(let i=0;i<SCENES.length;i++){
+    const dx=W*.05+W*.9*(DURS.slice(0,i).reduce((a,b)=>a+b,0)/total);
+    CX.fillStyle=i<=sc?'rgba(255,255,255,.7)':'rgba(255,255,255,.2)';
+    CX.beginPath(); CX.arc(dx,H-LB()*.55,3,0,Math.PI*2); CX.fill();
+  }
+}
+
+// ── Transitions ───────────────────────────────────────────────────────────
+let inTrans=false, tA=0, tD=1, nSc=0;
+function goTo(n){ if(n<0||n>=SCENES.length||inTrans) return; nSc=n; inTrans=true; tD=1; }
+function next(){ sc<SCENES.length-1?goTo(sc+1):goTo(0); }
+function prev(){ sc>0&&goTo(sc-1); }
+
+// ── Events ────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); next(); }
+  if(e.key==='ArrowLeft'){ e.preventDefault(); prev(); }
+});
+let tx0=0;
+CV.addEventListener('touchstart',e=>tx0=e.touches[0].clientX);
+CV.addEventListener('touchend',e=>{ const d=e.changedTouches[0].clientX-tx0; Math.abs(d)>50?(d<0?next():prev()):next(); });
+CV.addEventListener('click',e=>{
+  if(e.clientX<W*.1&&Math.abs(e.clientY-H*.5)<H*.2){ prev(); return; }
+  next();
+});
+
+// ── Main loop ─────────────────────────────────────────────────────────────
+function frame(){
+  t++; scT++;
+  W=CV.width; H=CV.height;
+  parts=parts.filter(p=>{ p.update(); return !p.dead; });
+  const progress=Math.min(1,scT/(DURS[sc]*60));
+  SCENES[sc](progress);
+  parts.forEach(p=>p.draw());
+  // film grain
+  CX.save(); CX.globalAlpha=.018;
+  for(let i=0;i<800;i++){
+    const gx=Math.random()*W, gy=LB()+Math.random()*CH();
+    const gr=Math.random()>.5?255:0;
+    CX.fillStyle=`rgb(${gr},${gr},${gr})`; CX.fillRect(gx,gy,1.5,1.5);
+  }
+  CX.restore();
+  drawLetterbox();
+  drawProgressBar();
+  // nav arrows
+  if(sc>0){ CX.save(); CX.globalAlpha=.25; CX.fillStyle='rgba(255,255,255,.1)'; CX.beginPath(); CX.arc(30,H*.5,22,0,Math.PI*2); CX.fill(); CX.strokeStyle='rgba(255,255,255,.5)'; CX.lineWidth=2; CX.beginPath(); CX.moveTo(38,H*.5-8); CX.lineTo(22,H*.5); CX.lineTo(38,H*.5+8); CX.stroke(); CX.restore(); }
+  if(sc<SCENES.length-1){ const op=.25+(Math.sin(t*.04)+1)*.08; CX.save(); CX.globalAlpha=op; CX.fillStyle='rgba(255,255,255,.1)'; CX.beginPath(); CX.arc(W-30,H*.5,22,0,Math.PI*2); CX.fill(); CX.strokeStyle='rgba(255,255,255,.5)'; CX.lineWidth=2; CX.beginPath(); CX.moveTo(W-38,H*.5-8); CX.lineTo(W-22,H*.5); CX.lineTo(W-38,H*.5+8); CX.stroke(); CX.restore(); }
+  // transition
+  if(inTrans){
+    tA=tD===1?Math.min(1,tA+.08):Math.max(0,tA-.08);
+    CX.fillStyle=`rgba(0,0,0,${tA})`; CX.fillRect(0,0,W,H);
+    if(tA>=1&&tD===1){ sc=nSc; scT=0; parts=[]; tD=-1; }
+    if(tA<=0&&tD===-1) inTrans=false;
+  }
+  if(!inTrans&&DURS[sc]>0&&scT>=DURS[sc]*60) next();
+  requestAnimationFrame(frame);
+}
+frame();
+</script>
+</body>
+</html>

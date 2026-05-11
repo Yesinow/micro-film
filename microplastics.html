@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Micro — Le Voyage d'une Particule / رحلة جسيم بلاستيكي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════
+   VARIABLES & RESET
+══════════════════════════════════════════════ */
+:root {
+  --dg:#004E2B; --mg:#00843D; --lg:#5EAC2C;
+  --bg:#EFE3D5; --bk:#0D0D0D; --gr:#444;
+  --wh:#FFFFFF; --co:#D85B55; --or:#F28C28; --bl:#00A3E0;
+  --yel:#FFD700;
+  --ff:'Nunito',sans-serif;
+  --fa:'Cairo',sans-serif;
+  --rad:20px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;-webkit-user-select:none;}
+body{font-family:var(--ff);color:var(--wh);
+  background:linear-gradient(135deg,#0D1B4B 0%,#1B0A3E 50%,#0A2A1A 100%);
+  transition:background 1s ease;}
+
+/* ══════════════════════════════════════════════
+   SPLASH SCREEN
+══════════════════════════════════════════════ */
+#splash{
+  position:fixed;inset:0;z-index:200;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:0;
+  background:radial-gradient(ellipse at 50% 60%,#0a3320 0%,#040e07 70%,#020809 100%);
+  transition:opacity .8s ease,visibility .8s ease;
+}
+#splash.out{opacity:0;visibility:hidden;pointer-events:none;}
+#splashBg{position:absolute;inset:0;width:100%;height:100%;}
+.splash-in{position:relative;z-index:2;display:flex;flex-direction:column;
+  align-items:center;text-align:center;gap:16px;padding:24px;}
+#splashChar{
+  width:min(200px,38vw);height:min(200px,38vw);
+  object-fit:contain;
+  filter:drop-shadow(0 0 50px rgba(94,172,44,.9)) drop-shadow(0 0 20px rgba(0,132,61,.6));
+  animation:sBounce 2.2s ease-in-out infinite;
+}
+@keyframes sBounce{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-22px) rotate(4deg)}}
+.stitle{font-size:clamp(44px,9vw,96px);font-weight:900;line-height:1;letter-spacing:-2px}
+.stitle em{color:var(--lg);font-style:normal}
+.stitle-ar{font-family:var(--fa);font-size:clamp(26px,5vw,54px);font-weight:800;
+  color:rgba(255,255,255,.8);line-height:1.2}
+.ssub{font-size:clamp(13px,2.2vw,18px);color:rgba(255,255,255,.45);font-style:italic;margin-top:-4px}
+#btnStart{
+  margin-top:8px;padding:18px 56px;
+  background:linear-gradient(135deg,#00843D,#5EAC2C);
+  border:none;border-radius:50px;
+  font-family:var(--ff);font-size:clamp(15px,2.4vw,20px);
+  font-weight:800;letter-spacing:2px;color:#fff;
+  cursor:pointer;
+  box-shadow:0 8px 32px rgba(0,132,61,.65),0 0 0 0 rgba(94,172,44,.4);
+  transition:transform .2s,box-shadow .2s;
+  animation:pulseShadow 2.5s ease-in-out infinite;
+}
+@keyframes pulseShadow{
+  0%,100%{box-shadow:0 8px 32px rgba(0,132,61,.65),0 0 0 0 rgba(94,172,44,.4)}
+  50%{box-shadow:0 8px 40px rgba(0,132,61,.8),0 0 0 12px rgba(94,172,44,0)}}
+#btnStart:hover{transform:scale(1.07) translateY(-2px)}
+#btnStart:active{transform:scale(.96)}
+
+/* ══════════════════════════════════════════════
+   APP LAYOUT
+══════════════════════════════════════════════ */
+#app{position:fixed;inset:0;z-index:10;
+  display:flex;flex-direction:column;
+  visibility:hidden;}
+
+/* ─── SCENE ZONE ─── */
+#scene-zone{
+  position:relative;
+  flex:0 0 min(46vh,46%);
+  overflow:hidden;
+  border-radius:0 0 28px 28px;
+  box-shadow:0 16px 60px rgba(0,0,0,.55);
+}
+#effectCanvas{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;}
+.scene-img{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:center 30%;
+  opacity:0;z-index:1;
+  transition:opacity 1.4s ease;
+}
+.scene-img.show{opacity:1;animation:kenBurns 26s ease-in-out infinite alternate;}
+@keyframes kenBurns{from{transform:scale(1) translate(0,0)}to{transform:scale(1.14) translate(-2%,-2%)}}
+#scene-overlay{
+  position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(0,0,0,.08) 0%,rgba(0,0,0,.0) 35%,rgba(0,0,0,.42) 75%,rgba(0,0,0,.8) 100%);
+}
+/* Scene badge top-left */
+#sbadge-row{
+  position:absolute;top:14px;left:14px;z-index:5;
+  display:flex;gap:7px;align-items:center;
+}
+.sbadge{
+  padding:5px 14px;border-radius:40px;
+  font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1.5px solid rgba(255,255,255,.2);
+}
+.sbfr{background:rgba(0,132,61,.3);color:#A8FFD0;}
+.sbar{background:rgba(242,140,40,.25);color:#FFDBA0;
+  font-family:var(--fa);font-size:12px;letter-spacing:0;text-transform:none;}
+/* Scene title bottom */
+#scene-label{
+  position:absolute;bottom:0;left:0;right:0;z-index:5;
+  padding:16px 20px 18px;
+}
+#scene-num{
+  display:block;font-size:10px;font-weight:700;letter-spacing:3px;
+  text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:4px;
+}
+#scene-main-title{
+  font-size:clamp(18px,3.5vw,34px);font-weight:900;
+  text-shadow:0 2px 20px rgba(0,0,0,.7);line-height:1.1;
+  opacity:0;transform:translateY(14px);
+  transition:opacity .5s ease,transform .5s ease;
+}
+#scene-main-title.in{opacity:1;transform:translateY(0);}
+
+/* Scene transition */
+#scene-zone.zout{animation:zoomOut .35s ease-in forwards;}
+#scene-zone.zin{animation:zoomIn .35s ease-out forwards;}
+@keyframes zoomOut{to{opacity:0;transform:scale(.93);}}
+@keyframes zoomIn{from{opacity:0;transform:scale(.93);}to{opacity:1;transform:scale(1);}}
+
+/* ─── CARD ZONE ─── */
+#card-zone{
+  flex:1;min-height:0;
+  display:flex;flex-direction:column;
+  background:rgba(5,14,9,.5);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  padding:8px 0 4px;
+}
+
+/* Progress track */
+#prog-wrap{padding:6px 20px 4px;flex-shrink:0;}
+#prog-track{
+  height:7px;background:rgba(255,255,255,.1);
+  border-radius:10px;position:relative;overflow:visible;
+}
+#prog-fill{
+  height:100%;border-radius:10px;
+  background:linear-gradient(90deg,var(--dg),var(--mg),var(--lg),var(--or));
+  transition:width .6s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 0 14px rgba(94,172,44,.7);
+}
+#prog-char{
+  position:absolute;top:50%;transform:translateY(-50%);
+  width:30px;height:30px;object-fit:contain;
+  transition:left .6s cubic-bezier(.4,0,.2,1);
+  filter:drop-shadow(0 0 7px rgba(94,172,44,1));
+  animation:microWalk .6s ease-in-out infinite alternate;
+  z-index:2;
+}
+@keyframes microWalk{
+  from{transform:translateY(-50%) rotate(-8deg) scale(1);}
+  to{transform:translateY(-60%) rotate(8deg) scale(1.05);}}
+
+/* Dialogue row */
+#dlg-row{
+  flex:1;min-height:0;
+  display:flex;align-items:stretch;
+  gap:0;padding:6px 14px 4px;
+  overflow:hidden;
+}
+
+/* Character */
+#char-side{
+  flex-shrink:0;width:min(106px,18vw);
+  display:flex;align-items:flex-end;justify-content:center;
+  position:relative;
+}
+#charImg,#fbCanvas{
+  width:min(96px,16vw);height:min(96px,16vw);
+  object-fit:contain;object-position:bottom;
+  filter:drop-shadow(0 6px 18px rgba(0,0,0,.4));
+}
+/* Emotion animations */
+@keyframes eFloat{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-12px) rotate(3deg)}}
+@keyframes eShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px) rotate(-5deg)}75%{transform:translateX(7px) rotate(5deg)}}
+@keyframes eDroop{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(8px) rotate(6deg)}}
+@keyframes eFly{0%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-20px) rotate(10deg)}100%{transform:translateY(0) rotate(-6deg)}}
+@keyframes eHope{0%,100%{transform:scale(1) translateY(0)}30%{transform:scale(1.12) translateY(-16px) rotate(-4deg)}70%{transform:scale(1.07) translateY(-9px) rotate(4deg)}}
+@keyframes ePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+.em-happy   #charImg,.em-neutral #charImg{animation:eFloat 3s ease-in-out infinite;}
+.em-flying  #charImg{animation:eFly 2s ease-in-out infinite;}
+.em-floating #charImg{animation:eFloat 2.5s ease-in-out infinite;}
+.em-scared  #charImg{animation:eShake .45s linear infinite;
+  filter:drop-shadow(0 0 18px rgba(255,80,0,.9))!important;}
+.em-trapped #charImg{animation:eDroop 1.8s ease-in-out infinite;
+  filter:drop-shadow(0 0 16px rgba(180,30,30,.8))!important;}
+.em-sad     #charImg{animation:eDroop 3s ease-in-out infinite;filter:brightness(.82) drop-shadow(0 8px 20px rgba(0,0,0,.5));}
+.em-angry   #charImg{animation:eShake .3s linear infinite;
+  filter:drop-shadow(0 0 20px rgba(255,0,0,1))!important;}
+.em-hope    #charImg{animation:eHope 2.2s ease-in-out infinite;
+  filter:drop-shadow(0 0 24px rgba(255,215,0,.95)) drop-shadow(0 6px 16px rgba(0,0,0,.4))!important;}
+
+/* Speech bubble */
+#bubble{
+  flex:1;min-width:0;min-height:0;
+  background:rgba(239,227,213,.97);
+  border-radius:20px;
+  padding:10px 14px 8px;
+  position:relative;
+  box-shadow:0 8px 40px rgba(0,0,0,.45);
+  display:flex;flex-direction:column;gap:5px;
+  color:var(--bk);
+  overflow:hidden;
+}
+/* Accent stripe */
+#bubble::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,var(--mg),var(--lg),var(--or));
+  border-radius:20px 20px 0 0;
+}
+/* Tail pointing left */
+#bubble::before{
+  content:'';position:absolute;left:-13px;top:22px;
+  border:7px solid transparent;
+  border-right-color:rgba(239,227,213,.97);
+  filter:drop-shadow(-1px 0 2px rgba(0,0,0,.08));
+}
+
+/* Title row */
+#btitles{
+  display:flex;justify-content:space-between;gap:10px;
+  border-bottom:1.5px solid rgba(0,78,43,.12);
+  padding-bottom:5px;
+}
+#tfr{
+  font-size:clamp(11px,2vw,15px);font-weight:900;
+  color:var(--mg);flex:1;line-height:1.2;
+}
+#tar{
+  font-family:var(--fa);font-size:clamp(12px,2.1vw,16px);font-weight:800;
+  color:var(--dg);direction:rtl;text-align:right;flex:1;line-height:1.2;
+}
+
+/* Text row */
+#btexts{
+  display:flex;gap:10px;flex:1;min-height:0;overflow:hidden;
+  align-items:flex-start;
+}
+#bfr,#bar{
+  flex:1;font-size:clamp(10.5px,1.65vw,13.5px);line-height:1.6;
+  overflow:hidden;color:var(--gr);
+}
+#bar{font-family:var(--fa);direction:rtl;text-align:right;color:#2D4A3E;}
+#bdiv{width:1.5px;background:rgba(0,78,43,.14);align-self:stretch;flex-shrink:0;border-radius:2px;}
+
+/* Fact box */
+#bfact{
+  display:flex;gap:8px;
+  background:rgba(0,132,61,.1);
+  border-left:3px solid var(--mg);
+  border-radius:8px;padding:5px 9px;
+  flex-shrink:0;
+}
+#bfact.hide{display:none;}
+#bfact-fr,#bfact-ar{
+  flex:1;font-size:clamp(9.5px,1.45vw,11.5px);line-height:1.5;
+  font-style:italic;font-weight:700;color:var(--dg);
+}
+#bfact-ar{font-family:var(--fa);direction:rtl;text-align:right;}
+
+/* ─── NAVIGATION ─── */
+#nav-row{
+  flex-shrink:0;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;
+  padding:4px 14px 6px;
+}
+.nbtn{
+  padding:11px 26px;border-radius:50px;border:none;
+  font-family:var(--ff);font-size:clamp(12px,1.9vw,15px);
+  font-weight:800;letter-spacing:.5px;cursor:pointer;
+  transition:transform .2s,box-shadow .2s,opacity .2s;
+  min-width:110px;text-align:center;white-space:nowrap;
+}
+#nbPrev{
+  background:rgba(255,255,255,.12);backdrop-filter:blur(8px);
+  color:var(--wh);border:1.5px solid rgba(255,255,255,.2);
+}
+#nbNext{
+  background:linear-gradient(135deg,var(--mg),var(--lg));
+  color:var(--wh);
+  box-shadow:0 4px 18px rgba(0,132,61,.5);
+}
+#nbNext.last{
+  background:linear-gradient(135deg,var(--or),#FF6930);
+  box-shadow:0 4px 18px rgba(242,140,40,.6);
+}
+.nbtn:hover{transform:translateY(-2px) scale(1.04);}
+.nbtn:active{transform:scale(.96);}
+#nbPrev:disabled{opacity:.3;pointer-events:none;}
+/* Nav dots */
+#dots{display:flex;gap:5px;align-items:center;}
+.dot{
+  width:7px;height:7px;border-radius:50%;
+  background:rgba(255,255,255,.18);
+  cursor:pointer;transition:all .35s ease;
+}
+.dot.done{background:rgba(94,172,44,.45);}
+.dot.active{
+  background:var(--lg);width:22px;border-radius:4px;
+  box-shadow:0 0 12px rgba(94,172,44,.8);
+}
+
+/* ══════════════════════════════════════════════
+   ENTRANCE ANIMATIONS
+══════════════════════════════════════════════ */
+.eu{opacity:0;transform:translateY(18px);transition:opacity .45s ease,transform .45s ease;}
+.eu.in{opacity:1;transform:translateY(0);}
+.el{opacity:0;transform:translateX(-16px);transition:opacity .45s ease,transform .45s ease;}
+.el.in{opacity:1;transform:translateX(0);}
+.er{opacity:0;transform:translateX(16px);transition:opacity .45s ease,transform .45s ease;}
+.er.in{opacity:1;transform:translateX(0);}
+
+/* ══════════════════════════════════════════════
+   CONFETTI CANVAS
+══════════════════════════════════════════════ */
+#confettiC{
+  position:fixed;inset:0;z-index:300;pointer-events:none;
+  opacity:0;transition:opacity .5s;
+}
+#confettiC.on{opacity:1;}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════ */
+@media(max-width:600px){
+  #scene-zone{flex:0 0 38vh;}
+  #char-side{width:80px;}
+  #charImg,#fbCanvas{width:72px;height:72px;}
+  .nbtn{padding:9px 18px;min-width:90px;}
+  #scene-main-title{font-size:17px;}
+}
+@media(max-height:600px){
+  #scene-zone{flex:0 0 36vh;}
+  #btitles{padding-bottom:3px;}
+  #btexts{display:none;}
+  #bfact{display:none!important;}
+}
+</style>
+</head>
+<body>
+
+<!-- CONFETTI -->
+<canvas id="confettiC"></canvas>
+
+<!-- ════ SPLASH ════ -->
+<div id="splash">
+  <canvas id="splashBg"></canvas>
+  <div class="splash-in">
+    <img id="splashChar" src="micro.png" alt="Micro"
+         onerror="this.style.cssText='width:160px;height:160px'">
+    <h1 class="stitle">Je suis <em>Micro</em></h1>
+    <h2 class="stitle-ar">أنا ميكرو</h2>
+    <p class="ssub">Le voyage invisible d'une particule de plastique</p>
+    <button id="btnStart">COMMENCER &nbsp;·&nbsp; ابدأ</button>
+  </div>
+</div>
+
+<!-- ════ APP ════ -->
+<div id="app">
+
+  <!-- SCENE ZONE -->
+  <div id="scene-zone">
+    <img class="scene-img" id="imgBeach"     src="bouteille sur plage enfants jette.png" alt="">
+    <img class="scene-img" id="imgOcean"     src="bouteille dans ocean avec poisson.png" alt="">
+    <img class="scene-img" id="imgMicro"     src="micro plastique in ocean.jpeg" alt="" style="object-position:center center">
+    <img class="scene-img" id="imgFish"      src="microplastiques-poissons.jpg.webp" alt="" style="object-position:center center">
+    <img class="scene-img" id="imgNaissance" src="naissance micro plastic.avif" alt="" style="object-position:center center">
+    <img class="scene-img" id="imgPlat"      src="eat plastic plat.webp" alt="" style="object-position:center center">
+    <img class="scene-img" id="imgPlat2"     src="plat plastique .avif" alt="" style="object-position:center center">
+    <div id="scene-overlay"></div>
+    <canvas id="effectCanvas"></canvas>
+    <div id="sbadge-row">
+      <span class="sbadge sbfr" id="sbfr">INTRODUCTION</span>
+      <span class="sbadge sbar" id="sbar">المقدمة</span>
+    </div>
+    <div id="scene-label">
+      <span id="scene-num">SCÈNE 0 · المشهد 0</span>
+      <div id="scene-main-title" class="in">Le Début</div>
+    </div>
+  </div>
+
+  <!-- CARD ZONE -->
+  <div id="card-zone">
+
+    <!-- Progress -->
+    <div id="prog-wrap">
+      <div id="prog-track">
+        <div id="prog-fill" style="width:5%"></div>
+        <img id="prog-char" src="micro.png" style="left:3%" alt=""
+             onerror="this.style.display='none'">
+      </div>
+    </div>
+
+    <!-- Dialogue -->
+    <div id="dlg-row">
+      <div id="char-side" class="em-happy">
+        <img id="charImg" src="micro.png" alt="Micro"
+             onerror="this.style.display='none';document.getElementById('fbCanvas').style.display='block'">
+        <canvas id="fbCanvas" style="display:none"></canvas>
+      </div>
+      <div id="bubble">
+        <div id="btitles">
+          <span id="tfr" class="el"></span>
+          <span id="tar" class="er"></span>
+        </div>
+        <div id="btexts">
+          <p id="bfr" class="eu"></p>
+          <div id="bdiv"></div>
+          <p id="bar" class="eu"></p>
+        </div>
+        <div id="bfact" class="hide">
+          <span id="bfact-fr"></span>
+          <span id="bfact-ar"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <div id="nav-row">
+      <button class="nbtn" id="nbPrev">← Précédent</button>
+      <div id="dots"></div>
+      <button class="nbtn" id="nbNext">التالي →</button>
+    </div>
+
+  </div><!-- /card-zone -->
+</div><!-- /app -->
+
+<script>
+/* ═══════════════════════════════════════════════════
+   BRAND + THEME DATA
+═══════════════════════════════════════════════════ */
+const THEMES = {
+  intro:   {bg:['#0D1B4B','#1B0A3E','#0A2A1A'],ef:'star'},
+  beach:   {bg:['#1565C0','#0288D1','#E65100'],ef:'sand'},
+  decomp:  {bg:['#7B1F00','#B71C1C','#E64A19'],ef:'frag'},
+  wind:    {bg:['#01579B','#0277BD','#0288D1'],ef:'rain'},
+  ocean:   {bg:['#006494','#0077B6','#03045E'],ef:'bubble'},
+  deepsea: {bg:['#023E8A','#03045E','#001845'],ef:'bubble'},
+  fishing: {bg:['#0076A8','#00B4D8','#F28C28'],ef:'bubble'},
+  plate:   {bg:['#3E2000','#5D4037','#BF360C'],ef:'heat'},
+  danger:  {bg:['#7F0000','#B71C1C','#C62828'],ef:'frag'},
+  hope:    {bg:['#003D22','#004E2B','#5EAC2C'],ef:'star'},
+};
+
+/* ═══════════════════════════════════════════════════
+   SLIDES
+═══════════════════════════════════════════════════ */
+const SL = [
+  {theme:'intro',img:'naissance',em:'happy',
+   badgeFr:'Introduction',badgeAr:'المقدمة',
+   num:'SCÈNE 0 · المشهد 0',title:'Le Début • البداية',
+   tFr:'👋 Bonjour, je suis Micro !',tAr:'👋 مرحباً، أنا ميكرو!',
+   bFr:'Je suis une minuscule particule de plastique.\nJe mesure moins de 5 mm — invisible à l\'œil nu.\nJe suis partout : eau, air, nourriture...\nLaisse-moi te raconter mon voyage.',
+   bAr:'أنا جسيم بلاستيكي صغير جداً.\nأقل من 5 ملم — لا يمكن رؤيتي بالعين المجردة.\nأنا في كل مكان: الماء، الهواء، الطعام...\nدعني أحكي لك رحلتي.',fact:null},
+
+  {theme:'beach',img:'beach',em:'neutral',
+   badgeFr:'Scène 1 — La Bouteille',badgeAr:'المشهد 1 — الزجاجة',
+   num:'SCÈNE 1 · المشهد 1',title:'La Bouteille Jetée',
+   tFr:'🏖️ Tout a commencé sur cette plage...',tAr:'🏖️ بدأ كل شيء على هذا الشاطئ...',
+   bFr:'Un enfant a bu de l\'eau en jouant sur la plage.\nIl a jeté sa bouteille sur le sable sans y penser.\nUn geste de 3 secondes.\nUne conséquence qui durera 450 ans.',
+   bAr:'شرب طفل الماء وهو يلعب على الشاطئ.\nرمى زجاجته على الرمال دون تفكير.\nتصرُّف من 3 ثوانٍ.\nعواقب تمتد لـ 450 سنة.',
+   fact:{fr:'💡 Une bouteille plastique met jusqu\'à 450 ans à se décomposer dans la nature.',
+         ar:'💡 تستغرق الزجاجة ما يصل إلى 450 سنة للتحلل في الطبيعة.'}},
+
+  {theme:'decomp',img:'micro',em:'neutral',
+   badgeFr:'Scène 2 — Naissance',badgeAr:'المشهد 2 — التفتت',
+   num:'SCÈNE 2 · المشهد 2',title:'Naissance des Microplastiques',
+   tFr:'☀️ Le soleil m\'a donné naissance',tAr:'☀️ الشمس أوجدتني',
+   bFr:'Sous la chaleur du soleil et la force du vent,\nla bouteille s\'est fissurée puis fragmentée.\nElle s\'est divisée en millions de minuscules morceaux.\nC\'est ainsi que je suis né.',
+   bAr:'تحت حرارة الشمس وقوة الريح،\nتشققت الزجاجة ثم تفتتت.\nانقسمت إلى ملايين القطع الصغيرة.\nهكذا وُلدتُ أنا.',
+   fact:{fr:'💡 Le plastique ne disparaît jamais — il se fragmente en particules de plus en plus petites.',
+         ar:'💡 البلاستيك لا يختفي أبداً — يتفتت إلى جسيمات أصغر وأصغر.'}},
+
+  {theme:'wind',img:'naissance',em:'flying',
+   badgeFr:'Scène 3 — Le Vent',badgeAr:'المشهد 3 — الريح',
+   num:'SCÈNE 3 · المشهد 3',title:'Le Voyage dans les Airs',
+   tFr:'💨 Le vent m\'emporte partout',tAr:'💨 الريح تحملني في كل مكان',
+   bFr:'Le vent m\'a soulevé de la plage.\nJe voyage maintenant dans l\'air que tu respires.\nJe traverse les villes, les montagnes, les océans.\nJe suis dans l\'air du monde entier.',
+   bAr:'رفعتني الريح من الشاطئ.\nأسافر الآن في الهواء الذي تتنفسه.\nأعبر المدن والجبال والمحيطات.\nأنا في هواء العالم بأسره.',
+   fact:{fr:'💡 Des microplastiques ont été retrouvés au sommet de l\'Himalaya et dans l\'Arctique.',
+         ar:'💡 وُجدت مكروبلاستيكات في قمم الهيمالايا وفي منطقة القطب الشمالي.'}},
+
+  {theme:'ocean',img:'ocean',em:'floating',
+   badgeFr:'Scène 4 — L\'Océan',badgeAr:'المشهد 4 — المحيط',
+   num:'SCÈNE 4 · المشهد 4',title:'Des Millions dans l\'Océan',
+   tFr:'🌊 Nous flottons dans l\'océan',tAr:'🌊 نطفو في المحيط',
+   bFr:'Me voilà dans l\'immensité de l\'océan.\nNous sommes des milliards — invisibles, partout.\nLes courants nous dispersent sur toute la planète.\nLa bouteille dans l\'image ? C\'est ma maison d\'origine.',
+   bAr:'ها أنا في اتساع المحيط.\nنحن المليارات — غير مرئيين، في كل مكان.\nالتيارات تنشرنا في جميع أنحاء الكوكب.\nالزجاجة في الصورة؟ هذا كان بيتي الأصلي.',
+   fact:{fr:'💡 Plus de 5 000 milliards de particules plastiques flottent dans nos océans actuellement.',
+         ar:'💡 أكثر من 5,000 مليار جسيم بلاستيكي يطفو في محيطاتنا حالياً.'}},
+
+  {theme:'deepsea',img:'ocean',em:'scared',
+   badgeFr:'Scène 5 — Les Fonds',badgeAr:'المشهد 5 — الأعماق',
+   num:'SCÈNE 5 · المشهد 5',title:'Dans les Profondeurs',
+   tFr:'🐠 Les poissons me confondent avec la nourriture',tAr:'🐠 الأسماك تخلط بيني وبين الطعام',
+   bFr:'Je descends dans les profondeurs sombres.\nUn poisson me voit — il me prend pour de la nourriture.\nIl m\'avale. Je suis maintenant dans son corps.\nBientôt, je serai dans le tien.',
+   bAr:'أنزل إلى الأعماق المظلمة.\nسمكة ترى — تظنني طعاماً.\nتبتلعني. أصبحت الآن في جسدها.\nقريباً، سأكون في جسدك أنت.',
+   fact:{fr:'💡 Plus de 700 espèces marines ont ingéré des plastiques : tortues, dauphins, baleines.',
+         ar:'💡 أكثر من 700 نوع بحري ابتلع البلاستيك: السلاحف، الدلافين، الحيتان.'}},
+
+  {theme:'fishing',img:'plat2',em:'trapped',
+   badgeFr:'Scène 6 — La Pêche',badgeAr:'المشهد 6 — الصيد',
+   num:'SCÈNE 6 · المشهد 6',title:'Du Filet à l\'Assiette',
+   tFr:'🎣 Je voyage jusqu\'à ton assiette',tAr:'🎣 أسافر حتى طبقك',
+   bFr:'Le pêcheur lance son filet dans l\'océan.\nIl attrape le poisson qui m\'a avalé.\nLe poisson est vendu au marché.\nJe suis maintenant dans ton dîner.',
+   bAr:'يلقي الصياد شبكته في المحيط.\nيمسك السمكة التي ابتلعتني.\nتُباع السمكة في السوق.\nأنا الآن في عشائك.',
+   fact:{fr:'💡 Une personne consomme en moyenne 5 g de plastique par semaine — comme une carte de crédit.',
+         ar:'💡 يستهلك الشخص في المتوسط 5 غرامات من البلاستيك أسبوعياً — كبطاقة ائتمان.'}},
+
+  {theme:'plate',img:'plat',em:'sad',
+   badgeFr:'Scène 7 — Dans ton Corps',badgeAr:'المشهد 7 — في جسمك',
+   num:'SCÈNE 7 · المشهد 7',title:'Invisible dans ton Assiette',
+   tFr:'🍽️ Je suis dans ta nourriture',tAr:'🍽️ أنا في طعامك',
+   bFr:'Pas seulement dans le poisson !\nJe suis dans le sel de mer, le miel, la bière.\nJe suis dans l\'eau du robinet et en bouteille.\nJe suis partout dans ton alimentation.',
+   bAr:'ليس فقط في السمك!\nأنا في ملح البحر، والعسل، والبيرة.\nأنا في ماء الصنبور والمعبأ في زجاجات.\nأنا في كل مكان من غذائك.',
+   fact:{fr:'💡 Des microplastiques ont été détectés dans le sang humain, les poumons et le placenta.',
+         ar:'💡 تم اكتشاف مكروبلاستيكات في دم الإنسان والرئتين وحتى المشيمة.'}},
+
+  {theme:'danger',img:'fish',em:'angry',
+   badgeFr:'Scène 8 — L\'Alerte',badgeAr:'المشهد 8 — التحذير',
+   num:'SCÈNE 8 · المشهد 8',title:'Le Danger est Réel',
+   tFr:'⚠️ Mon impact sur ta santé',tAr:'⚠️ تأثيري على صحتك',
+   bFr:'Les scientifiques s\'inquiètent de ma présence.\nJe transporte des produits chimiques toxiques.\nJe perturbe les hormones et le système immunitaire.\nLes enfants sont les plus vulnérables.',
+   bAr:'العلماء قلقون من وجودي.\nأحمل مواد كيميائية سامة.\nأعطل الهرمونات والجهاز المناعي.\nالأطفال هم الأكثر عرضة للخطر.',
+   fact:{fr:'💡 L\'OMS a lancé une alerte mondiale sur les dangers des microplastiques pour la santé.',
+         ar:'💡 أصدرت منظمة الصحة العالمية تحذيراً عالمياً بشأن مخاطر المكروبلاستيكات.'}},
+
+  {theme:'hope',img:'micro',em:'hope',
+   badgeFr:'Scène 9 — L\'Espoir',badgeAr:'المشهد 9 — الأمل',
+   num:'SCÈNE 9 · المشهد 9',title:'Agir Ensemble • العمل معاً',
+   tFr:'🌍 Ensemble, on peut changer !',tAr:'🌍 معاً يمكننا التغيير!',
+   bFr:'✓ Refuser le plastique à usage unique\n✓ Trier et recycler correctement\n✓ Utiliser des gourdes réutilisables\n✓ Sensibiliser ceux qui t\'entourent\n✓ Agir dès aujourd\'hui !',
+   bAr:'✓ رفض البلاستيك أحادي الاستخدام\n✓ الفرز وإعادة التدوير بشكل صحيح\n✓ استخدام قوارير قابلة لإعادة الاستخدام\n✓ نشر الوعي بين من حولك\n✓ التصرف من الآن!',
+   fact:{fr:'💡 Réduire le plastique de 50% pourrait sauver des millions d\'espèces marines.',
+         ar:'💡 تقليل البلاستيك بنسبة 50% يمكن أن ينقذ ملايين الأنواع البحرية.'}},
+];
+
+/* ═══════════════════════════════════════════════════
+   DOM
+═══════════════════════════════════════════════════ */
+const $=id=>document.getElementById(id);
+const splash=$('splash'),splashBg=$('splashBg'),btnStart=$('btnStart');
+const app=$('app'),sceneZone=$('scene-zone');
+const effectCanvas=$('effectCanvas');
+const imgBeach=$('imgBeach'),imgOcean=$('imgOcean'),
+      imgMicro=$('imgMicro'),imgFish=$('imgFish'),
+      imgNaissance=$('imgNaissance'),imgPlat=$('imgPlat'),imgPlat2=$('imgPlat2');
+const ALL_IMGS={beach:imgBeach,ocean:imgOcean,micro:imgMicro,fish:imgFish,
+                naissance:imgNaissance,plat:imgPlat,plat2:imgPlat2};
+const sbfr=$('sbfr'),sbar=$('sbar');
+const sceneNum=$('scene-num'),sceneTitle=$('scene-main-title');
+const progFill=$('prog-fill'),progChar=$('prog-char');
+const charSide=$('char-side'),charImg=$('charImg'),fbCanvas=$('fbCanvas');
+const tfr=$('tfr'),tar=$('tar'),bfr=$('bfr'),bar=$('bar');
+const bfact=$('bfact'),bfactFr=$('bfact-fr'),bfactAr=$('bfact-ar');
+const dots=$('dots'),nbPrev=$('nbPrev'),nbNext=$('nbNext');
+const confettiC=$('confettiC'),confettiCtx=confettiC.getContext('2d');
+
+let cur=0,N=SL.length,locked=false;
+let confAF,confPieces=[],confOn=false;
+
+/* ═══════════════════════════════════════════════════
+   SPLASH BACKGROUND
+═══════════════════════════════════════════════════ */
+let splashAF;
+(function initSplash(){
+  const ctx=splashBg.getContext('2d');
+  let W,H;
+  const pts=[];
+  function resize(){W=splashBg.width=splashBg.offsetWidth;H=splashBg.height=splashBg.offsetHeight;}
+  resize();window.addEventListener('resize',resize);
+  const cols=['#5EAC2C','#00843D','#00A3E0','#F28C28','#FFD700','#D85B55'];
+  for(let i=0;i<90;i++){
+    pts.push({x:Math.random()*1e4%1,y:Math.random()*1e4%1,
+      r:Math.random()*4+1,c:cols[i%cols.length],
+      vx:(Math.random()-.5)*.003,vy:(Math.random()-.5)*.003,
+      a:0,ma:.5+Math.random()*.4,ph:Math.random()*Math.PI*2});
+  }
+  function loop(){
+    ctx.clearRect(0,0,W,H);
+    const t=Date.now()/1000;
+    pts.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0)p.x=1;if(p.x>1)p.x=0;
+      if(p.y<0)p.y=1;if(p.y>1)p.y=0;
+      p.a=p.ma*(0.5+0.5*Math.sin(t*1.2+p.ph));
+      ctx.globalAlpha=p.a;ctx.fillStyle=p.c;
+      ctx.beginPath();ctx.arc(p.x*W,p.y*H,p.r,0,Math.PI*2);ctx.fill();
+    });
+    ctx.globalAlpha=1;
+    splashAF=requestAnimationFrame(loop);
+  }
+  loop();
+})();
+
+/* ═══════════════════════════════════════════════════
+   EFFECT CANVAS
+═══════════════════════════════════════════════════ */
+let EW,EH,efAF,efFrame=0,curTheme='intro';
+const ef=effectCanvas.getContext('2d');
+const eParts=[];
+
+function resizeEf(){EW=effectCanvas.width=effectCanvas.offsetWidth;EH=effectCanvas.height=effectCanvas.offsetHeight;}
+
+class EP{
+  constructor(type){this.type=type;this.init();}
+  init(){
+    const t=this.type;
+    if(t==='bubble'){
+      this.x=Math.random()*EW;this.y=EH+10;
+      this.r=Math.random()*9+3;this.vy=-(Math.random()*1.4+.4);
+      this.vx=(Math.random()-.5)*.4;this.a=Math.random()*.5+.2;
+    }else if(t==='sand'){
+      this.x=-20;this.y=EH*(.65+Math.random()*.3);
+      this.vx=Math.random()*4+2;this.vy=(Math.random()-.5)*.8;
+      this.r=Math.random()*4+1.5;this.a=Math.random()*.5+.3;
+    }else if(t==='rain'){
+      this.x=Math.random()*EW;this.y=-30;
+      this.vx=Math.random()*2+1;this.vy=Math.random()*10+8;
+      this.len=Math.random()*28+12;this.a=Math.random()*.35+.1;
+    }else if(t==='frag'){
+      const a=Math.random()*Math.PI*2,s=Math.random()*4+1;
+      this.x=EW/2;this.y=EH/2;
+      this.vx=Math.cos(a)*s;this.vy=Math.sin(a)*s;
+      this.r=Math.random()*5+2;this.a=.85;this.da=.007+Math.random()*.012;
+      this.col=['#FF6B35','#E67E22','#F28C28','#C0392B'][Math.floor(Math.random()*4)];
+    }else if(t==='heat'){
+      this.x=Math.random()*EW;this.y=Math.random()*EH;
+      this.r=Math.random()*30+15;this.a=0;this.ph=Math.random()*Math.PI*2;
+    }else{// star/light
+      this.x=Math.random()*EW;this.y=Math.random()*EH;
+      this.r=Math.random()*3+1;this.a=0;
+      this.ma=Math.random()*.6+.2;this.ph=Math.random()*Math.PI*2;
+      this.col=t==='star'?['#FFD700','#5EAC2C','#00A3E0','#fff'][Math.floor(Math.random()*4)]:'rgba(100,255,180,1)';
+    }
+  }
+  tick(){
+    const t=this.type,T=Date.now()/1000;
+    if(t==='bubble'){this.x+=this.vx;this.y+=this.vy;if(this.y<-10)this.init();}
+    else if(t==='sand'){this.x+=this.vx;this.y+=this.vy;if(this.x>EW+20)this.init();}
+    else if(t==='rain'){this.x+=this.vx;this.y+=this.vy;if(this.y>EH+20||this.x>EW+20)this.init();}
+    else if(t==='frag'){this.x+=this.vx;this.y+=this.vy;this.vy+=.09;this.a-=this.da;if(this.a<=0||this.y>EH+10)this.init();}
+    else if(t==='heat'){this.a=.12*(0.5+0.5*Math.sin(T*1.5+this.ph));}
+    else{this.a=this.ma*(0.5+0.5*Math.sin(T*1.8+this.ph));}
+  }
+  draw(){
+    const t=this.type;
+    ef.globalAlpha=Math.max(0,this.a);
+    if(t==='bubble'){
+      ef.strokeStyle='rgba(120,210,255,.75)';ef.lineWidth=1.5;
+      ef.beginPath();ef.arc(this.x,this.y,this.r,0,Math.PI*2);ef.stroke();
+      // small shine
+      ef.fillStyle='rgba(200,240,255,.25)';
+      ef.beginPath();ef.arc(this.x-this.r*.3,this.y-this.r*.3,this.r*.3,0,Math.PI*2);ef.fill();
+    }else if(t==='sand'){
+      ef.fillStyle=`rgba(255,218,140,${this.a})`;
+      ef.beginPath();ef.arc(this.x,this.y,this.r,0,Math.PI*2);ef.fill();
+    }else if(t==='rain'){
+      ef.strokeStyle=`rgba(160,210,255,${this.a})`;ef.lineWidth=1;
+      ef.beginPath();ef.moveTo(this.x,this.y);ef.lineTo(this.x+this.vx*3,this.y+this.len);ef.stroke();
+    }else if(t==='frag'){
+      ef.fillStyle=this.col;
+      ef.beginPath();ef.arc(this.x,this.y,this.r,0,Math.PI*2);ef.fill();
+    }else if(t==='heat'){
+      const g=ef.createRadialGradient(this.x,this.y,0,this.x,this.y,this.r);
+      g.addColorStop(0,'rgba(255,100,0,.4)');g.addColorStop(1,'transparent');
+      ef.fillStyle=g;ef.beginPath();ef.arc(this.x,this.y,this.r,0,Math.PI*2);ef.fill();
+    }else{
+      ef.fillStyle=this.col;
+      ef.beginPath();ef.arc(this.x,this.y,this.r,0,Math.PI*2);ef.fill();
+    }
+    ef.globalAlpha=1;
+  }
+}
+
+const EFX={
+  star:  [{t:'star',rate:3}],
+  sand:  [{t:'sand',rate:7},{t:'bubble',rate:2}],
+  frag:  [{t:'frag',rate:6},{t:'heat',rate:2}],
+  rain:  [{t:'rain',rate:16}],
+  bubble:[{t:'bubble',rate:8},{t:'star',rate:2}],
+  heat:  [{t:'heat',rate:3},{t:'frag',rate:2}],
+};
+
+function efLoop(){
+  ef.clearRect(0,0,EW,EH);
+  efFrame++;
+  const th=THEMES[curTheme];
+  const efname=th?th.ef:'star';
+  const cfg=EFX[efname]||EFX.star;
+  cfg.forEach(c=>{
+    if(efFrame%Math.max(1,Math.round(60/c.rate))===0 && eParts.length<250){
+      eParts.push(new EP(c.t));
+    }
+  });
+  for(let i=eParts.length-1;i>=0;i--){eParts[i].tick();eParts[i].draw();}
+  efAF=requestAnimationFrame(efLoop);
+}
+
+/* ═══════════════════════════════════════════════════
+   FALLBACK CANVAS CHARACTER
+═══════════════════════════════════════════════════ */
+fbCanvas.width=96;fbCanvas.height=96;
+const fbCtx=fbCanvas.getContext('2d');
+function drawFB(em='happy'){
+  fbCtx.clearRect(0,0,96,96);
+  const cx=48,cy=50;
+  // glow
+  const g0=fbCtx.createRadialGradient(cx,cy,6,cx,cy,46);
+  g0.addColorStop(0,'rgba(0,132,61,.35)');g0.addColorStop(1,'transparent');
+  fbCtx.fillStyle=g0;fbCtx.beginPath();fbCtx.arc(cx,cy,46,0,Math.PI*2);fbCtx.fill();
+  // body (lumpy circle)
+  const g1=fbCtx.createLinearGradient(cx-32,cy-32,cx+32,cy+32);
+  g1.addColorStop(0,'rgba(255,255,255,.95)');g1.addColorStop(1,'rgba(190,235,210,.9)');
+  fbCtx.fillStyle=g1;fbCtx.beginPath();
+  for(let i=0;i<8;i++){
+    const a=(i/8)*Math.PI*2-Math.PI/2,r=29+(i%3===0?7:-4);
+    i===0?fbCtx.moveTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r):fbCtx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);
+  }
+  fbCtx.closePath();fbCtx.fill();
+  fbCtx.strokeStyle='rgba(0,132,61,.2)';fbCtx.lineWidth=1.5;fbCtx.stroke();
+  // eyes
+  const ey=cy-5;
+  fbCtx.fillStyle='#fff';
+  fbCtx.beginPath();fbCtx.ellipse(cx-9,ey,5,em==='sad'?3:5,0,0,Math.PI*2);fbCtx.fill();
+  fbCtx.beginPath();fbCtx.ellipse(cx+9,ey,5,em==='sad'?3:5,0,0,Math.PI*2);fbCtx.fill();
+  fbCtx.fillStyle='#111';
+  fbCtx.beginPath();fbCtx.arc(cx-8,ey+(em==='sad'?1:0),2.5,0,Math.PI*2);fbCtx.fill();
+  fbCtx.beginPath();fbCtx.arc(cx+10,ey+(em==='sad'?1:0),2.5,0,Math.PI*2);fbCtx.fill();
+  // mouth
+  fbCtx.strokeStyle='#111';fbCtx.lineWidth=2;fbCtx.lineCap='round';
+  fbCtx.beginPath();const my=cy+10;
+  if(em==='sad')fbCtx.arc(cx,my+4,8,Math.PI*1.15,Math.PI*1.85);
+  else if(em==='scared')fbCtx.ellipse(cx,my,5,6,0,0,Math.PI*2);
+  else if(em==='angry'){fbCtx.moveTo(cx-8,my-2);fbCtx.lineTo(cx+8,my+2);}
+  else if(em==='hope')fbCtx.arc(cx,my-2,10,0.12,Math.PI-0.12);
+  else fbCtx.arc(cx,my-2,8,0.12,Math.PI-0.12);
+  fbCtx.stroke();
+  // shine
+  fbCtx.fillStyle='rgba(255,255,255,.22)';
+  fbCtx.beginPath();fbCtx.ellipse(cx-10,cy-14,7,4,-.4,0,Math.PI*2);fbCtx.fill();
+}
+drawFB('happy');
+
+/* ═══════════════════════════════════════════════════
+   BUILD DOTS
+═══════════════════════════════════════════════════ */
+function buildDots(){
+  dots.innerHTML='';
+  for(let i=0;i<N;i++){
+    const d=document.createElement('div');
+    d.className='dot'+(i<cur?' done':i===cur?' active':'');
+    d.onclick=()=>goTo(i);
+    dots.appendChild(d);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER SLIDE
+═══════════════════════════════════════════════════ */
+function renderSlide(){
+  const s=SL[cur];
+  // 1. Body gradient
+  const th=THEMES[s.theme];
+  document.body.style.background=`linear-gradient(135deg,${th.bg[0]},${th.bg[1]},${th.bg[2]})`;
+  // 2. Effect
+  eParts.length=0;curTheme=s.theme;
+  // 3. Images — show only the one matching this scene
+  Object.entries(ALL_IMGS).forEach(([key,el])=>{
+    el.classList.toggle('show', s.img===key);
+  });
+  // 4. Badges
+  sbfr.textContent=s.badgeFr;sbar.textContent=s.badgeAr;
+  // 5. Scene num / title
+  sceneNum.textContent=s.num;
+  sceneTitle.classList.remove('in');
+  sceneTitle.textContent=s.title;
+  setTimeout(()=>sceneTitle.classList.add('in'),60);
+  // 6. Bubble content (staggered)
+  [tfr,tar,bfr,bar].forEach(el=>el.classList.remove('in'));
+  tfr.textContent=s.tFr; tar.textContent=s.tAr;
+  bfr.innerHTML=s.bFr.replace(/\n/g,'<br>');
+  bar.innerHTML=s.bAr.replace(/\n/g,'<br>');
+  setTimeout(()=>{tfr.classList.add('in');tar.classList.add('in');},80);
+  setTimeout(()=>{bfr.classList.add('in');bar.classList.add('in');},160);
+  // 7. Fact
+  if(s.fact){
+    bfact.classList.remove('hide');
+    bfactFr.textContent=s.fact.fr;bfactAr.textContent=s.fact.ar;
+  }else{bfact.classList.add('hide');}
+  // 8. Character emotion
+  charSide.className='em-'+s.em;
+  drawFB(s.em);
+  // 9. Progress
+  const pct=cur/(N-1)*100;
+  progFill.style.width=Math.max(4,pct)+'%';
+  const clamped=Math.max(0,Math.min(96,pct));
+  progChar.style.left=clamped+'%';
+  // 10. Nav
+  nbPrev.disabled=cur===0;
+  if(cur===N-1){nbNext.textContent='↺ Rejouer';nbNext.classList.add('last');}
+  else{nbNext.textContent='التالي →';nbNext.classList.remove('last');}
+  buildDots();
+  // 11. Confetti
+  if(s.theme==='hope')startConf();else stopConf();
+}
+
+/* ═══════════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════════ */
+function goTo(n){
+  if(locked||n<0||n>=N)return;
+  locked=true;cur=n;
+  sceneZone.classList.add('zout');
+  setTimeout(()=>{
+    sceneZone.classList.remove('zout');
+    renderSlide();
+    sceneZone.classList.add('zin');
+    setTimeout(()=>{sceneZone.classList.remove('zin');locked=false;},350);
+  },340);
+}
+
+nbNext.onclick=()=>goTo(cur===N-1?0:cur+1);
+nbPrev.onclick=()=>{if(cur>0)goTo(cur-1);};
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='ArrowDown')nbNext.click();
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp')nbPrev.click();
+});
+// Touch swipe
+let tx0=0;
+document.addEventListener('touchstart',e=>{tx0=e.touches[0].clientX;},{passive:true});
+document.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tx0;
+  if(Math.abs(dx)>50){if(dx<0)nbNext.click();else nbPrev.click();}
+});
+
+/* ═══════════════════════════════════════════════════
+   CONFETTI
+═══════════════════════════════════════════════════ */
+const CCOLS=['#5EAC2C','#00843D','#F28C28','#FFD700','#00A3E0','#D85B55','#fff','#8B5CF6'];
+function makeConf(){
+  return{x:Math.random()*window.innerWidth,y:-20,
+    w:Math.random()*10+5,h:Math.random()*6+3,
+    col:CCOLS[Math.floor(Math.random()*CCOLS.length)],
+    vx:(Math.random()-.5)*3,vy:Math.random()*3+1.5,
+    rot:Math.random()*360,vr:(Math.random()-.5)*5,a:.7+Math.random()*.3};
+}
+function startConf(){
+  if(confOn)return;confOn=true;
+  confettiC.width=window.innerWidth;confettiC.height=window.innerHeight;
+  confettiC.classList.add('on');
+  confPieces=[];for(let i=0;i<130;i++)confPieces.push(makeConf());
+  loopConf();
+}
+function stopConf(){
+  confOn=false;cancelAnimationFrame(confAF);
+  confettiC.classList.remove('on');
+  confettiCtx.clearRect(0,0,confettiC.width,confettiC.height);
+}
+function loopConf(){
+  confettiCtx.clearRect(0,0,confettiC.width,confettiC.height);
+  confPieces.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;
+    if(p.y>confettiC.height+10){p.x=Math.random()*confettiC.width;p.y=-10;}
+    confettiCtx.globalAlpha=p.a;confettiCtx.fillStyle=p.col;
+    confettiCtx.save();confettiCtx.translate(p.x,p.y);
+    confettiCtx.rotate(p.rot*Math.PI/180);
+    confettiCtx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+    confettiCtx.restore();
+  });
+  confettiCtx.globalAlpha=1;
+  if(confOn)confAF=requestAnimationFrame(loopConf);
+}
+
+/* ═══════════════════════════════════════════════════
+   START
+═══════════════════════════════════════════════════ */
+buildDots();
+
+function launch(){
+  splash.classList.add('out');
+  cancelAnimationFrame(splashAF);
+  app.style.visibility='visible';
+  resizeEf();efLoop();
+  renderSlide();
+}
+btnStart.onclick=launch;
+document.addEventListener('click',e=>{
+  if(!splash.classList.contains('out')&&e.target!==btnStart)launch();
+});
+window.addEventListener('resize',()=>{
+  resizeEf();
+  confettiC.width=window.innerWidth;
+  confettiC.height=window.innerHeight;
+});
+</script>
+</body>
+</html>

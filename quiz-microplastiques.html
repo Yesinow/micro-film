@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Microplastiques – Danger & Quiz | خطر المكروبلاستيك</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --ocean:#060f1e;--deep:#0d1f35;--card:#0f2540;
+  --teal:#00d4ff;--green:#00ff88;--danger:#ff4757;--gold:#ffd700;
+  --text:#e8f4f8;--muted:#6a9ab0;
+}
+body{font-family:'Poppins',sans-serif;background:var(--ocean);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 15% 50%,rgba(0,212,255,.06) 0%,transparent 55%),radial-gradient(ellipse at 85% 15%,rgba(0,255,136,.04) 0%,transparent 55%);pointer-events:none;z-index:0}
+
+/* PROGRESS */
+#progress-bar{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--teal),var(--green));transition:width .5s ease;z-index:1000;width:0%}
+
+/* LAYOUT */
+.wrap{max-width:860px;margin:0 auto;padding:24px 16px;position:relative;z-index:1}
+
+/* SCREENS */
+.screen{display:none;animation:fadeUp .55s ease}
+.screen.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+/* WELCOME */
+.hero-top{text-align:center;padding:56px 20px 32px}
+.blob{font-size:88px;animation:float 3.2s ease-in-out infinite;display:block}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+.hero-title{font-size:clamp(2rem,5vw,3.4rem);font-weight:900;background:linear-gradient(135deg,var(--teal),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.15}
+.hero-ar{font-family:'Amiri',serif;font-size:clamp(1.3rem,3vw,2rem);color:var(--teal);direction:rtl;margin-top:6px}
+.hero-sub{color:var(--muted);font-size:.95rem;max-width:580px;margin:14px auto 0;line-height:1.8}
+
+/* CARDS */
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(0,212,255,.14);border-radius:20px;padding:28px;margin-bottom:18px;backdrop-filter:blur(8px)}
+.card-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+/* INPUTS */
+input[type=text]{width:100%;padding:14px 18px;background:rgba(255,255,255,.07);border:2px solid rgba(0,212,255,.18);border-radius:12px;color:var(--text);font-size:1rem;font-family:'Poppins',sans-serif;outline:none;transition:border-color .25s}
+input[type=text]:focus{border-color:var(--teal);background:rgba(0,212,255,.06)}
+input[type=text]::placeholder{color:var(--muted)}
+
+/* HERO NAMES */
+.heroes{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:11px}
+.hero-chip{padding:14px 10px;background:rgba(255,255,255,.03);border:2px solid rgba(0,212,255,.14);border-radius:14px;cursor:pointer;transition:all .25s;text-align:center;user-select:none}
+.hero-chip:hover{border-color:var(--teal);background:rgba(0,212,255,.09);transform:translateY(-3px)}
+.hero-chip.on{border-color:var(--green);background:rgba(0,255,136,.09)}
+.chip-icon{font-size:2.2rem;margin-bottom:6px}
+.chip-fr{font-size:.88rem;font-weight:700;color:var(--text)}
+.chip-ar{font-family:'Amiri',serif;font-size:.98rem;color:var(--teal);direction:rtl;margin-top:4px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:15px 38px;border:none;border-radius:50px;font-size:1rem;font-weight:700;font-family:'Poppins',sans-serif;cursor:pointer;transition:all .25s;text-decoration:none;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,var(--teal),#0099bb);color:#fff;box-shadow:0 10px 28px rgba(0,212,255,.28)}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 16px 36px rgba(0,212,255,.38)}
+.btn-success{background:linear-gradient(135deg,var(--green),#00bb66);color:#060f1e;box-shadow:0 10px 28px rgba(0,255,136,.25)}
+.btn-success:hover{transform:translateY(-3px)}
+.btn-danger{background:linear-gradient(135deg,var(--danger),#cc2233);color:#fff}
+.btn-full{width:100%}
+
+/* STEP HEADER */
+.step-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.step-tag{background:rgba(0,212,255,.13);border:1px solid rgba(0,212,255,.25);padding:5px 14px;border-radius:20px;font-size:.82rem;color:var(--teal)}
+.score-tag{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.25);padding:5px 14px;border-radius:20px;font-size:.82rem;color:var(--green)}
+
+/* QUIZ IMAGE */
+.quiz-img{width:100%;height:260px;object-fit:cover;border-radius:16px;margin-bottom:22px;display:block}
+
+/* BILINGUAL INFO */
+.bilingual{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:18px}
+@media(max-width:580px){.bilingual{grid-template-columns:1fr}}
+.bi-card{padding:18px;border-radius:14px}
+.bi-fr{background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.18)}
+.bi-ar{background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.18);direction:rtl;font-family:'Amiri',serif}
+.bi-tag{font-size:.7rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;padding:2px 9px;border-radius:8px;display:inline-block;margin-bottom:9px}
+.bi-tag-fr{background:rgba(0,212,255,.2);color:var(--teal)}
+.bi-tag-ar{background:rgba(0,255,136,.2);color:var(--green);font-family:'Poppins',sans-serif;direction:ltr}
+.bi-card p{font-size:.9rem;line-height:1.75;color:var(--text)}
+.bi-ar p{font-size:1rem}
+
+/* SHOCKING */
+.shock{background:linear-gradient(135deg,rgba(255,71,87,.13),rgba(255,71,87,.04));border:1px solid rgba(255,71,87,.28);border-left:4px solid var(--danger);border-radius:12px;padding:14px 18px;margin-bottom:18px}
+.shock-fr{font-size:.88rem;color:#ff8c96;font-weight:600;margin-bottom:6px}
+.shock-ar{font-family:'Amiri',serif;font-size:1rem;color:#ff8c96;direction:rtl}
+
+/* QUESTION */
+.q-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:22px;margin-bottom:18px}
+.q-fr{font-size:1.05rem;font-weight:600;margin-bottom:6px}
+.q-ar{font-family:'Amiri',serif;font-size:1.05rem;color:var(--muted);direction:rtl;margin-bottom:18px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:480px){.opts{grid-template-columns:1fr}}
+.opt{padding:13px 16px;background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.09);border-radius:12px;color:var(--text);font-size:.88rem;font-family:'Poppins',sans-serif;cursor:pointer;transition:all .25s;text-align:left}
+.opt:hover:not(:disabled){border-color:var(--teal);background:rgba(0,212,255,.1)}
+.opt.correct{border-color:var(--green);background:rgba(0,255,136,.14);color:var(--green)}
+.opt.wrong{border-color:var(--danger);background:rgba(255,71,87,.14);color:#ff8c96}
+.opt:disabled{cursor:default}
+
+/* EXPLANATION */
+.expl{display:none;background:rgba(0,255,136,.07);border:1px solid rgba(0,255,136,.18);border-radius:12px;padding:14px 18px;margin-top:13px;font-size:.88rem;animation:fadeUp .35s ease}
+.expl.show{display:block}
+.expl-fr{margin-bottom:7px}
+.expl-ar{font-family:'Amiri',serif;direction:rtl;color:var(--muted);font-size:.98rem}
+
+/* NEXT BUTTON */
+#next-btn{display:none;margin-top:18px}
+
+/* RESULTS */
+.res-top{text-align:center;padding:40px 0 28px}
+.score-ring{width:160px;height:160px;border-radius:50%;margin:0 auto 24px;position:relative;display:flex;align-items:center;justify-content:center}
+.score-ring svg{position:absolute;inset:0}
+.score-inner{text-align:center;z-index:1}
+.score-num{font-size:2.8rem;font-weight:900;color:var(--teal)}
+.score-denom{font-size:.85rem;color:var(--muted)}
+.grade-title{font-size:1.6rem;font-weight:700;margin-bottom:6px}
+.grade-ar{font-family:'Amiri',serif;font-size:1.3rem;color:var(--teal);direction:rtl}
+
+/* HERO BADGE */
+.hero-badge{background:linear-gradient(135deg,rgba(255,215,0,.12),rgba(255,215,0,.04));border:2px solid rgba(255,215,0,.4);border-radius:18px;padding:22px 30px;text-align:center;margin-bottom:22px}
+.badge-icon{font-size:3.2rem;margin-bottom:6px}
+.badge-since{font-size:.72rem;color:var(--gold);text-transform:uppercase;letter-spacing:2px}
+.badge-fr{font-size:1.5rem;font-weight:700;color:var(--text);margin:6px 0}
+.badge-ar{font-family:'Amiri',serif;font-size:1.3rem;color:var(--gold);direction:rtl}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:13px;margin-bottom:24px}
+.stat{background:rgba(255,255,255,.04);border:1px solid rgba(0,212,255,.13);border-radius:14px;padding:18px;text-align:center}
+.stat-n{font-size:1.9rem;font-weight:900;color:var(--teal)}
+.stat-l{font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.4}
+
+/* CERT FORM */
+.cert-row{display:flex;gap:12px;margin-bottom:18px}
+@media(max-width:480px){.cert-row{flex-direction:column}}
+.cert-row input{flex:1}
+
+/* TIPS */
+.tips{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:22px}
+@media(max-width:520px){.tips{grid-template-columns:1fr}}
+.tip{background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.13);border-radius:12px;padding:14px;font-size:.82rem;line-height:1.6}
+.tip strong{color:var(--teal);display:block;margin-bottom:3px}
+.tip-ar{font-family:'Amiri',serif;direction:rtl;color:var(--muted);font-size:.88rem;margin-top:3px}
+
+/* FOOTER */
+.ft{text-align:center;padding:30px 0 10px;color:var(--muted);font-size:.75rem}
+</style>
+</head>
+<body>
+<div id="progress-bar"></div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 0 – WELCOME
+═══════════════════════════════════════════════ -->
+<div class="screen active" id="s0">
+<div class="wrap">
+  <div class="hero-top">
+    <span class="blob">🌊</span>
+    <h1 class="hero-title">Microplastiques : Danger & Quiz</h1>
+    <div class="hero-ar">المكروبلاستيك: خطر وإختبار</div>
+    <p class="hero-sub">Un voyage éducatif en 8 étapes pour comprendre l'une des crises environnementales les plus graves de notre siècle. Répondez, apprenez, agissez.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-label">👤 Votre identité / هويتك</div>
+    <div class="input-group" style="margin-bottom:14px">
+      <label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:7px">Votre prénom / اسمك الأول</label>
+      <input type="text" id="nameInput" placeholder="Ex: Amine, Sara…" maxlength="40">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">🦸 Choisissez votre titre de héros / اختر لقب بطلك</div>
+    <div class="heroes" id="heroGrid"></div>
+  </div>
+
+  <button class="btn btn-primary btn-full" onclick="startQuiz()">
+    Commencer l'aventure 🚀 &nbsp;|&nbsp; ابدأ المغامرة
+  </button>
+
+  <div class="ft">Photos: Unsplash • Données: IUCN, WWF, Nature Medicine, ONU</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 1 – QUIZ STEPS
+═══════════════════════════════════════════════ -->
+<div class="screen" id="s1">
+<div class="wrap">
+  <div class="step-row">
+    <div class="step-tag" id="stepLabel">Étape 1 / 8</div>
+    <div class="score-tag" id="scoreLabel">Score: 0</div>
+  </div>
+
+  <img class="quiz-img" id="qImg" src="" alt="microplastiques">
+
+  <div class="card" style="margin-bottom:14px">
+    <h2 style="font-size:1.18rem;font-weight:700;margin-bottom:6px" id="qTitleFr"></h2>
+    <h2 style="font-family:'Amiri',serif;font-size:1.18rem;color:var(--teal);direction:rtl" id="qTitleAr"></h2>
+  </div>
+
+  <div class="bilingual">
+    <div class="bi-card bi-fr">
+      <span class="bi-tag bi-tag-fr">🇫🇷 Français</span>
+      <p id="infoFr"></p>
+    </div>
+    <div class="bi-card bi-ar">
+      <span class="bi-tag bi-tag-ar">🇲🇦 العربية</span>
+      <p id="infoAr"></p>
+    </div>
+  </div>
+
+  <div class="shock">
+    <div class="shock-fr" id="shockFr"></div>
+    <div class="shock-ar" id="shockAr"></div>
+  </div>
+
+  <div class="q-box">
+    <div class="q-fr" id="qFr"></div>
+    <div class="q-ar" id="qAr"></div>
+    <div class="opts" id="opts"></div>
+    <div class="expl" id="expl">
+      <div class="expl-fr" id="explFr"></div>
+      <div class="expl-ar" id="explAr"></div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary btn-full" id="next-btn" onclick="nextStep()">
+    Étape suivante →
+  </button>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 2 – RESULTS
+═══════════════════════════════════════════════ -->
+<div class="screen" id="s2">
+<div class="wrap">
+  <div class="res-top">
+    <div class="score-ring">
+      <svg viewBox="0 0 160 160" style="transform:rotate(-90deg)">
+        <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(0,212,255,.12)" stroke-width="12"/>
+        <circle id="scoreArc" cx="80" cy="80" r="70" fill="none" stroke="url(#grad)" stroke-width="12"
+          stroke-dasharray="439.82" stroke-dashoffset="439.82" stroke-linecap="round"/>
+        <defs>
+          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#00d4ff"/>
+            <stop offset="100%" stop-color="#00ff88"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="score-inner">
+        <div class="score-num" id="scoreFinal">0/8</div>
+        <div class="score-denom">réponses</div>
+      </div>
+    </div>
+    <div class="grade-title" id="gradeTitle"></div>
+    <div class="grade-ar" id="gradeAr"></div>
+  </div>
+
+  <div class="hero-badge" id="heroBadge">
+    <div class="badge-icon" id="badgeIcon"></div>
+    <div class="badge-since">🏅 Titre décerné / اللقب الممنوح</div>
+    <div class="badge-fr" id="badgeFr"></div>
+    <div class="badge-ar" id="badgeAr"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-n">5g</div><div class="stat-l">plastique ingéré par semaine par humain<br>بلاستيك يبتلعه الإنسان أسبوعياً</div></div>
+    <div class="stat"><div class="stat-n">170T</div><div class="stat-l">trillions de particules dans les océans<br>تريليون جسيم في المحيطات</div></div>
+    <div class="stat"><div class="stat-n">450</div><div class="stat-l">ans pour décomposer une bouteille<br>سنة لتحلل زجاجة بلاستيك</div></div>
+    <div class="stat"><div class="stat-n">91%</div><div class="stat-l">du plastique n'est jamais recyclé<br>من البلاستيك لا يُعاد تدويره</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">🎓 Télécharger votre certificat PDF / تحميل شهادتك</div>
+    <div class="cert-row">
+      <input type="text" id="certName" placeholder="Votre nom complet / اسمك الكامل">
+      <button class="btn btn-success" onclick="generateCert()">📄 Télécharger</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">💡 10 Gestes pour agir / 10 أفعال للتغيير</div>
+    <div class="tips">
+      <div class="tip"><strong>🧴 Zéro plastique à usage unique</strong>Gourde, sac tissu, paille inox.<div class="tip-ar">زجاجة ماء معادة، حقيبة قماش، قشة معدنية</div></div>
+      <div class="tip"><strong>👕 Filet de lavage</strong>Utilisez un sac Guppyfriend pour capturer les microfibres.<div class="tip-ar">استخدم كيس Guppyfriend لحبس الألياف الدقيقة</div></div>
+      <div class="tip"><strong>🐟 Réduire les fruits de mer ultra-transformés</strong>Riches en microplastiques.<div class="tip-ar">قلّل المأكولات البحرية المصنّعة</div></div>
+      <div class="tip"><strong>🚗 Éviter les routes surchargées</strong>Pneus = source majeure de microplastiques.<div class="tip-ar">تجنب الطرق المكتظة، الإطارات مصدر رئيسي</div></div>
+      <div class="tip"><strong>🧼 Cosmétiques naturels</strong>Vérifiez l'absence de "polyethylene" dans les ingrédients.<div class="tip-ar">تحقق من خلو مستحضراتك من "polyethylene"</div></div>
+      <div class="tip"><strong>♻️ Trier & recycler</strong>Chaque bouteille recyclée est une victoire.<div class="tip-ar">كل زجاجة مُعاد تدويرها انتصار</div></div>
+      <div class="tip"><strong>🌊 Nettoyage de plage</strong>Rejoignez ou organisez une opération locale.<div class="tip-ar">شارك أو نظّم حملة تنظيف شاطئ</div></div>
+      <div class="tip"><strong>📢 Sensibiliser</strong>Partagez cette page avec 5 personnes.<div class="tip-ar">شارك هذه الصفحة مع 5 أشخاص من حولك</div></div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary btn-full" onclick="restart()" style="margin-bottom:20px">
+    🔄 Recommencer le quiz / إعادة الاختبار
+  </button>
+  <div class="ft">📸 Photos: Unsplash • Sources: IUCN, WWF, Nature Medicine (2024), UNEP, Uni. Newcastle (2019)</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════ -->
+<script>
+const HEROES = [
+  {emoji:'🌊', fr:'Gardien des Océans',    ar:'حارس المحيطات'},
+  {emoji:'🌿', fr:'Guerrier Vert',          ar:'المحارب الأخضر'},
+  {emoji:'🌍', fr:'Défenseur de la Planète',ar:'مدافع الكوكب'},
+  {emoji:'💙', fr:'Champion Bleu',          ar:'البطل الأزرق'},
+  {emoji:'⚡', fr:'Ambassadeur du Futur',   ar:'سفير المستقبل'}
+];
+
+const QUIZ = [
+  {
+    img:'https://images.unsplash.com/photo-1621451537084-482c73073a0f?w=900&q=80',
+    fr:{
+      title:'Les Microplastiques : Une Menace Invisible',
+      info:'Les microplastiques sont de minuscules fragments de plastique de moins de 5 mm. Invisibles à l\'œil nu, ils infiltrent nos océans, notre nourriture, nos organes. Ils proviennent de la dégradation de plastiques plus grands ou sont fabriqués directement à cette taille (microbilles dans les cosmétiques).',
+      shock:'🚨 CHIFFRE CHOC : Des microplastiques ont été retrouvés dans le sang humain, les poumons, le placenta de femmes enceintes et même dans le tissu cérébral humain en 2024 !',
+      q:'Quelle est la taille maximale d\'un microplastique ?',
+      opts:['Moins de 5 mm ✓','Moins de 1 cm','Moins de 10 mm','Moins de 2 cm'],
+      correct:0,
+      expl:'Un microplastique mesure moins de 5 millimètres. Certains mesurent quelques micromètres — invisibles mais destructeurs pour les organismes vivants.'
+    },
+    ar:{
+      title:'المكروبلاستيك: تهديد خفي',
+      info:'المكروبلاستيك قطع صغيرة من البلاستيك أقل من 5 ملم. غير مرئية للعين المجردة، تتسلل إلى محيطاتنا وطعامنا وأعضائنا. تنتج من تحلل البلاستيك الكبير أو تُصنع بهذا الحجم مباشرةً (كالخرزات الدقيقة في مستحضرات التجميل).',
+      shock:'🚨 رقم صادم: وُجد المكروبلاستيك في الدم البشري والرئتين والمشيمة لدى النساء الحوامل وحتى في أنسجة الدماغ البشري عام 2024!',
+      q:'ما الحجم الأقصى للمكروبلاستيك؟',
+      opts:['أقل من 5 ملم ✓','أقل من 1 سم','أقل من 10 ملم','أقل من 2 سم'],
+      correct:0,
+      expl:'يقل حجم المكروبلاستيك عن 5 ملم. بعضه يُقاس بالميكرومتر — غير مرئي بالعين المجردة لكنه مُدمِّر للكائنات الحية.'
+    }
+  },
+  {
+    img:'https://images.unsplash.com/photo-1583212292454-1d7a1e317856?w=900&q=80',
+    fr:{
+      title:'Vous Mangez du Plastique Chaque Semaine',
+      info:'Des études scientifiques prouvent qu\'un humain moyen ingère environ 5 grammes de microplastiques par semaine. Ces particules se retrouvent dans l\'eau du robinet, les fruits de mer, le sel de mer, la bière, le miel, et même dans l\'air que nous respirons à l\'intérieur de nos maisons.',
+      shock:'🚨 CHIFFRE CHOC : 5g/semaine = l\'équivalent d\'une carte de crédit en plastique ! En un an : 250g de plastique pur dans votre corps. En une vie : plus de 15 kg de microplastiques ingérés !',
+      q:'Quelle quantité de microplastiques un humain ingère-t-il par semaine ?',
+      opts:['5g (carte de crédit) ✓','1g','10g','0,5g'],
+      correct:0,
+      expl:'Une étude de l\'Université de Newcastle (2019) a révélé que nous ingérons environ 5g de plastique par semaine. Cette donnée a choqué le monde scientifique entier.'
+    },
+    ar:{
+      title:'أنت تأكل البلاستيك كل أسبوع',
+      info:'تُثبت الدراسات العلمية أن الإنسان العادي يبتلع نحو 5 غرامات من المكروبلاستيك أسبوعياً. تتواجد هذه الجسيمات في مياه الصنبور والمأكولات البحرية وملح البحر والبيرة والعسل وحتى هواء منازلنا.',
+      shock:'🚨 رقم صادم: 5 غرامات/أسبوع = بطاقة ائتمان بلاستيكية! في سنة: 250 غرام بلاستيك في جسمك. في عمر كامل: أكثر من 15 كغ من المكروبلاستيك المبتلع!',
+      q:'كم من المكروبلاستيك يبتلعه الإنسان أسبوعياً؟',
+      opts:['5 غرامات (بطاقة ائتمانية) ✓','1 غرام','10 غرامات','0.5 غرام'],
+      correct:0,
+      expl:'كشفت دراسة جامعة نيوكاسل (2019) أننا نبتلع نحو 5 غرامات من البلاستيك أسبوعياً. صدمت هذه النتيجة العالم العلمي بأسره.'
+    }
+  },
+  {
+    img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=900&q=80',
+    fr:{
+      title:'D\'Où Viennent les Microplastiques ?',
+      info:'Sources principales : dégradation des déchets plastiques en mer et sur terre, fibres synthétiques des vêtements lors du lavage, usure des pneus de voitures, microbilles dans les cosmétiques, peintures industrielles et emballages alimentaires. Ces sources libèrent des millions de particules chaque jour.',
+      shock:'🚨 CHIFFRE CHOC : Les vêtements en polyester/nylon sont responsables de 35% des microplastiques océaniques. Chaque lavage libère jusqu\'à 700 000 fibres synthétiques dans les eaux usées !',
+      q:'Quelle part des microplastiques dans les océans vient des vêtements synthétiques ?',
+      opts:['35% ✓','10%','50%','5%'],
+      correct:0,
+      expl:'L\'IUCN estime que les fibres textiles synthétiques représentent 34,8% des microplastiques primaires dans les océans — c\'est la source numéro un !'
+    },
+    ar:{
+      title:'من أين يأتي المكروبلاستيك؟',
+      info:'المصادر الرئيسية: تحلل النفايات البلاستيكية في البحار والأرض، وألياف الملابس الاصطناعية عند الغسيل، واهتراء إطارات السيارات، والخرزات الدقيقة في مستحضرات التجميل، والأصباغ الصناعية والعبوات الغذائية. تُطلق هذه المصادر ملايين الجسيمات يومياً.',
+      shock:'🚨 رقم صادم: الملابس الاصطناعية (بوليستر/نايلون) مسؤولة عن 35% من مكروبلاستيك المحيطات. كل دورة غسيل تُطلق حتى 700,000 ألياف اصطناعية في مياه الصرف!',
+      q:'ما نسبة المكروبلاستيك في المحيطات القادمة من الملابس الاصطناعية؟',
+      opts:['35% ✓','10%','50%','5%'],
+      correct:0,
+      expl:'تُقدّر IUCN أن الألياف النسيجية الاصطناعية تمثل 34.8% من المكروبلاستيك الأولي في المحيطات — وهي المصدر الأول!'
+    }
+  },
+  {
+    img:'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=900&q=80',
+    fr:{
+      title:'Les Effets Dévastateurs sur la Santé',
+      info:'Les microplastiques transportent des perturbateurs endocriniens (bisphénol A, phtalates), des métaux lourds et des pathogènes. Ils provoquent une inflammation chronique, des troubles hormonaux, et s\'accumulent dans les organes. Les effets à long terme sur la santé humaine sont encore en cours d\'étude mais déjà alarmants.',
+      shock:'🚨 CHIFFRE CHOC : Une étude Nature Medicine (2024) révèle que les personnes avec des microplastiques dans leurs artères ont un risque 4,5× plus élevé de crise cardiaque ou d\'AVC dans les 3 ans suivants !',
+      q:'Quel risque est multiplié par 4,5 chez les personnes avec microplastiques dans les artères ?',
+      opts:['Crise cardiaque / AVC ✓','Diabète type 2','Cancer du poumon','Arthrite'],
+      correct:0,
+      expl:'L\'étude révolutionnaire de Nature Medicine (2024) a suivi 257 patients : ceux ayant des nanoplastiques dans leurs plaques artérielles avaient 4,5× plus de risques cardiovasculaires sur 3 ans.'
+    },
+    ar:{
+      title:'التأثيرات المدمرة على الصحة',
+      info:'يحمل المكروبلاستيك مواد مُخلّة بالهرمونات (بيسفينول أ، فثالات) ومعادن ثقيلة ومسببات أمراض. يُسبب التهاباً مزمناً واضطرابات هرمونية ويتراكم في الأعضاء. لا يزال علماء يدرسون آثاره طويلة الأمد، لكن النتائج الأولى مُقلقة للغاية.',
+      shock:'🚨 رقم صادم: كشفت دراسة Nature Medicine (2024) أن الأشخاص الذين يمتلكون مكروبلاستيكاً في شرايينهم يواجهون خطراً أعلى بـ 4.5 مرة للإصابة بنوبة قلبية أو سكتة دماغية خلال 3 سنوات!',
+      q:'أي خطر يرتفع 4.5 مرة لدى الأشخاص ذوي المكروبلاستيك في الشرايين؟',
+      opts:['نوبة قلبية / سكتة دماغية ✓','السكري النوع 2','سرطان الرئة','التهاب المفاصل'],
+      correct:0,
+      expl:'تابعت دراسة Nature Medicine (2024) 257 مريضاً: مَن لديهم نانوبلاستيك في لويحاتهم الشريانية كانوا أكثر عرضة بـ 4.5 مرة لمخاطر القلب والأوعية خلال 3 سنوات.'
+    }
+  },
+  {
+    img:'https://images.unsplash.com/photo-1559827291-72abbd983834?w=900&q=80',
+    fr:{
+      title:'L\'Impact Dévastateur sur la Vie Marine',
+      info:'Les océans contiennent plus de 170 trillions de particules plastiques. Les animaux marins confondent le plastique avec de la nourriture : étouffement, occlusion intestinale, fausse satiété, mort par malnutrition. Le plastique remonte la chaîne alimentaire : plancton → poisson → humain.',
+      shock:'🚨 CHIFFRE CHOC : Plus d\'1 million d\'oiseaux marins et 100 000 mammifères marins meurent chaque année à cause du plastique. D\'ici 2050, les océans contiendront PLUS de plastique que de poissons en poids !',
+      q:'Combien d\'animaux marins meurent chaque année à cause du plastique ?',
+      opts:['+ 1 million ✓','100 000','10 000','500 000'],
+      correct:0,
+      expl:'Selon WWF et UNEP, plus d\'1 million d\'oiseaux marins et 100 000 mammifères marins meurent chaque année. La tortue marine est l\'une des espèces les plus touchées.'
+    },
+    ar:{
+      title:'التأثير المدمر على الحياة البحرية',
+      info:'تحتوي المحيطات على أكثر من 170 تريليون جسيم بلاستيكي. تخلط الحيوانات البحرية البلاستيك بالطعام: اختناق، انسداد معوي، شعور زائف بالشبع، موت بسبب سوء التغذية. يصعد البلاستيك في السلسلة الغذائية: عوالق ← أسماك ← إنسان.',
+      shock:'🚨 رقم صادم: أكثر من مليون طائر بحري و100,000 ثديي بحري يموتون سنوياً بسبب البلاستيك. بحلول 2050، ستحتوي المحيطات على بلاستيك أكثر من الأسماك وزناً!',
+      q:'كم عدد الحيوانات البحرية التي تموت سنوياً بسبب البلاستيك؟',
+      opts:['+مليون حيوان ✓','100,000','10,000','500,000'],
+      correct:0,
+      expl:'وفق WWF وUNEP، يموت أكثر من مليون طائر بحري و100,000 ثديي بحري سنوياً. السلحفاة البحرية من أكثر الأنواع تضرراً.'
+    }
+  },
+  {
+    img:'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=900&q=80',
+    fr:{
+      title:'Le Plastique : Un Héritage Empoisonné',
+      info:'Le plastique ne se décompose jamais vraiment — il se fragmente en particules de plus en plus petites indéfiniment. Une bouteille en PET met 450 ans à se fragmenter. Tout le plastique produit depuis 1950 existe encore, quelque part sur Terre, sous une forme ou une autre.',
+      shock:'🚨 CHIFFRE CHOC : 91% du plastique mondial n\'est jamais recyclé. Depuis 1950, l\'humanité a produit 8,3 milliards de tonnes de plastique — l\'équivalent de 1 milliard d\'éléphants africains !',
+      q:'Combien d\'années met une bouteille en plastique à se fragmenter ?',
+      opts:['450 ans ✓','100 ans','50 ans','1000 ans'],
+      correct:0,
+      expl:'Une bouteille en PET standard met environ 450 ans à se fragmenter — mais elle ne "disparaît" pas : elle devient des microplastiques qui persistent indéfiniment dans l\'environnement.'
+    },
+    ar:{
+      title:'البلاستيك: إرث مسموم',
+      info:'البلاستيك لا يتحلل أبداً حقاً — بل يتفتت إلى جسيمات أصغر فأصغر إلى الأبد. تستغرق زجاجة PET 450 سنة لتتفتت. كل البلاستيك المُنتج منذ 1950 لا يزال موجوداً في مكان ما على كوكب الأرض، بشكل أو بآخر.',
+      shock:'🚨 رقم صادم: 91% من البلاستيك العالمي لا يُعاد تدويره قط. منذ 1950، أنتجت البشرية 8.3 مليار طن من البلاستيك — يعادل مليار فيل أفريقي!',
+      q:'كم سنة تستغرق زجاجة البلاستيك لتتفتت؟',
+      opts:['450 سنة ✓','100 سنة','50 سنة','1000 سنة'],
+      correct:0,
+      expl:'تستغرق زجاجة PET العادية نحو 450 سنة لتتفتت — لكنها لا "تختفي": بل تصبح مكروبلاستيكاً يبقى إلى الأبد في البيئة.'
+    }
+  },
+  {
+    img:'https://images.unsplash.com/photo-1604187352002-00ae0e6a3a2f?w=900&q=80',
+    fr:{
+      title:'Une Crise de Production Mondiale',
+      info:'La production mondiale de plastique est passée de 2 millions de tonnes en 1950 à 430 millions de tonnes en 2023. Seulement 9% est recyclé, 12% est incinéré, et 79% finit en décharge ou dans la nature. À ce rythme, la production de plastique doublera d\'ici 2040.',
+      shock:'🚨 CHIFFRE CHOC : Chaque minute, l\'équivalent d\'un camion-poubelle entier de plastique est déversé dans les océans. Soit 8 millions de tonnes de plastique par an dans les mers du monde !',
+      q:'Quelle quantité de plastique rejoint les océans chaque année ?',
+      opts:['8 millions de tonnes ✓','1 million de tonnes','500 000 tonnes','50 millions de tonnes'],
+      correct:0,
+      expl:'Chaque année, 8 millions de tonnes de plastique finissent dans les océans — soit un camion-poubelle complet toutes les 60 secondes. La crise s\'accélère, pas l\'inverse.'
+    },
+    ar:{
+      title:'أزمة إنتاج عالمية',
+      info:'قفز الإنتاج العالمي للبلاستيك من 2 مليون طن عام 1950 إلى 430 مليون طن عام 2023. 9% فقط يُعاد تدويره، 12% يُحرق، و79% يذهب إلى مكبات النفايات أو الطبيعة. بهذا المعدل، سيتضاعف إنتاج البلاستيك بحلول 2040.',
+      shock:'🚨 رقم صادم: كل دقيقة يُلقى ما يعادل شاحنة قمامة كاملة من البلاستيك في المحيطات — أي 8 ملايين طن سنوياً في بحار العالم!',
+      q:'كم طناً من البلاستيك يصل إلى المحيطات سنوياً؟',
+      opts:['8 ملايين طن ✓','مليون طن','500,000 طن','50 مليون طن'],
+      correct:0,
+      expl:'كل عام، تنتهي 8 ملايين طن من البلاستيك في المحيطات — أي شاحنة قمامة كاملة كل 60 ثانية. الأزمة تتسارع، لا العكس.'
+    }
+  },
+  {
+    img:'https://images.unsplash.com/photo-1567956001630-87d1d2d85f8a?w=900&q=80',
+    fr:{
+      title:'Les Solutions : Votre Pouvoir d\'Agir',
+      info:'La lutte contre les microplastiques nécessite une action à tous les niveaux : individuel (réduire, réutiliser, recycler), communautaire (nettoyages, sensibilisation), industriel (éco-conception) et politique (réglementation, traités internationaux). Chaque action compte. Chaque voix compte.',
+      shock:'🚨 BONNE NOUVELLE : Réduire le plastique à usage unique de seulement 20% sauverait 19 millions de tonnes/an. Un filtre sur la machine à laver peut capturer 90% des microfibres !',
+      q:'Quel % de microfibres un filtre de machine à laver peut-il capturer ?',
+      opts:['Jusqu\'à 90% ✓','30%','50%','10%'],
+      correct:0,
+      expl:'Des filtres spéciaux (Gulp, Guppyfriend) peuvent capturer jusqu\'à 90% des microfibres synthétiques et empêcher leur rejet dans les eaux. Un geste simple, un impact énorme !'
+    },
+    ar:{
+      title:'الحلول: قوتك للتغيير',
+      info:'تتطلب مكافحة المكروبلاستيك عملاً على جميع المستويات: فردي (تقليل، إعادة استخدام، تدوير)، مجتمعي (حملات تنظيف وتوعية)، صناعي (تصميم بيئي) وسياسي (تنظيمات، معاهدات دولية). كل فعل يُحدث فرقاً. كل صوت مهم.',
+      shock:'🚨 خبر سار: تخفيض البلاستيك أحادي الاستخدام بـ 20% فقط سيوفر 19 مليون طن سنوياً. فلتر على الغسالة يلتقط حتى 90% من الألياف الدقيقة!',
+      q:'ما نسبة الألياف الدقيقة التي يلتقطها فلتر الغسالة الخاص؟',
+      opts:['حتى 90% ✓','30%','50%','10%'],
+      correct:0,
+      expl:'يمكن للفلاتر الخاصة (Gulp، Guppyfriend) التقاط حتى 90% من الألياف الاصطناعية الدقيقة ومنع تدفقها في المياه. إجراء بسيط، تأثير هائل!'
+    }
+  }
+];
+
+/* ─── STATE ─── */
+let step = 0, score = 0, answered = false;
+let selectedHero = -1, participantName = '';
+
+/* ─── BUILD HERO GRID ─── */
+const heroGrid = document.getElementById('heroGrid');
+HEROES.forEach((h,i)=>{
+  const d = document.createElement('div');
+  d.className='hero-chip';
+  d.innerHTML=`<div class="chip-icon">${h.emoji}</div><div class="chip-fr">${h.fr}</div><div class="chip-ar">${h.ar}</div>`;
+  d.onclick=()=>{
+    document.querySelectorAll('.hero-chip').forEach(c=>c.classList.remove('on'));
+    d.classList.add('on');
+    selectedHero=i;
+  };
+  heroGrid.appendChild(d);
+});
+
+/* ─── START ─── */
+function startQuiz(){
+  participantName = document.getElementById('nameInput').value.trim();
+  if(!participantName){alert('Veuillez entrer votre prénom / يرجى إدخال اسمك');return}
+  if(selectedHero<0){alert('Choisissez votre titre de héros / اختر لقب بطلك');return}
+  step=0; score=0; answered=false;
+  showScreen('s1');
+  loadStep();
+}
+
+/* ─── LOAD STEP ─── */
+function loadStep(){
+  const q = QUIZ[step];
+  const f = q.fr, a = q.ar;
+  answered = false;
+
+  document.getElementById('stepLabel').textContent = `Étape ${step+1} / 8 | المرحلة ${step+1}`;
+  document.getElementById('scoreLabel').textContent = `Score: ${score}/8`;
+  setProgress((step/8)*90);
+
+  document.getElementById('qImg').src = q.img;
+  document.getElementById('qTitleFr').textContent = f.title;
+  document.getElementById('qTitleAr').textContent = a.title;
+  document.getElementById('infoFr').textContent = f.info;
+  document.getElementById('infoAr').textContent = a.info;
+  document.getElementById('shockFr').textContent = f.shock;
+  document.getElementById('shockAr').textContent = a.shock;
+  document.getElementById('qFr').textContent = f.q;
+  document.getElementById('qAr').textContent = a.q;
+
+  const optsDiv = document.getElementById('opts');
+  optsDiv.innerHTML='';
+  f.opts.forEach((o,i)=>{
+    const b = document.createElement('button');
+    b.className='opt';
+    b.textContent=o;
+    b.onclick=()=>answer(i,f.correct,f.expl,a.expl);
+    optsDiv.appendChild(b);
+  });
+
+  document.getElementById('expl').classList.remove('show');
+  document.getElementById('next-btn').style.display='none';
+}
+
+/* ─── ANSWER ─── */
+function answer(idx, correct, explFr, explAr){
+  if(answered) return;
+  answered=true;
+  const btns = document.querySelectorAll('.opt');
+  btns.forEach(b=>b.disabled=true);
+  if(idx===correct){score++;btns[idx].classList.add('correct')}
+  else{btns[idx].classList.add('wrong');btns[correct].classList.add('correct')}
+  document.getElementById('explFr').textContent=explFr;
+  document.getElementById('explAr').textContent=explAr;
+  document.getElementById('expl').classList.add('show');
+  document.getElementById('scoreLabel').textContent=`Score: ${score}/8`;
+  document.getElementById('next-btn').style.display='block';
+}
+
+/* ─── NEXT ─── */
+function nextStep(){
+  step++;
+  if(step>=QUIZ.length){showResults();return}
+  loadStep();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ─── RESULTS ─── */
+function showResults(){
+  setProgress(100);
+  showScreen('s2');
+
+  document.getElementById('scoreFinal').textContent=`${score}/8`;
+
+  // Animate arc
+  const arc=document.getElementById('scoreArc');
+  const pct=score/8;
+  const circumference=439.82;
+  setTimeout(()=>{
+    arc.style.transition='stroke-dashoffset 1.2s ease';
+    arc.style.strokeDashoffset=circumference*(1-pct);
+  },100);
+
+  // Grade
+  let gradeFr,gradeAr;
+  if(score>=7){gradeFr='🏆 Expert Environnemental !';gradeAr='خبير بيئي !'}
+  else if(score>=5){gradeFr='🌟 Très Sensibilisé !';gradeAr='واعٍ جداً !'}
+  else if(score>=3){gradeFr='📚 En Bonne Voie !';gradeAr='في الطريق الصحيح !'}
+  else{gradeFr='🌱 Le Voyage Commence !';gradeAr='الرحلة بدأت الآن !'}
+  document.getElementById('gradeTitle').textContent=gradeFr;
+  document.getElementById('gradeAr').textContent=gradeAr;
+
+  const h=HEROES[selectedHero];
+  document.getElementById('badgeIcon').textContent=h.emoji;
+  document.getElementById('badgeFr').textContent=h.fr;
+  document.getElementById('badgeAr').textContent=h.ar;
+
+  document.getElementById('certName').value=participantName;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ─── CERTIFICATE PDF ─── */
+function generateCert(){
+  const name = document.getElementById('certName').value.trim() || participantName || 'Participant';
+  const h = HEROES[selectedHero];
+  const today = new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'});
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF('landscape','mm','a4');
+
+  // Deep blue background
+  doc.setFillColor(6,15,30);
+  doc.rect(0,0,297,210,'F');
+
+  // Outer teal border
+  doc.setDrawColor(0,212,255); doc.setLineWidth(3);
+  doc.rect(8,8,281,194);
+  // Inner gold border
+  doc.setDrawColor(255,215,0); doc.setLineWidth(0.8);
+  doc.rect(13,13,271,184);
+
+  // Corner accents
+  const corners=[[13,13],[284,13],[13,197],[284,197]];
+  corners.forEach(([x,y])=>{
+    doc.setFillColor(0,212,255);
+    doc.circle(x,y,3,'F');
+  });
+
+  // Top decorative line
+  doc.setDrawColor(0,212,255); doc.setLineWidth(0.4);
+  doc.line(30,38,267,38);
+
+  // TITLE
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(26); doc.setTextColor(0,212,255);
+  doc.text('CERTIFICAT DE SENSIBILISATION',148.5,32,{align:'center'});
+
+  // SUBTITLE
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(11); doc.setTextColor(160,210,230);
+  doc.text('Microplastiques – Danger & Conscience Environnementale',148.5,44,{align:'center'});
+
+  // Divider
+  doc.setDrawColor(255,215,0); doc.setLineWidth(0.4);
+  doc.line(40,50,257,50);
+
+  // Certifie que
+  doc.setFont('helvetica','italic');
+  doc.setFontSize(12); doc.setTextColor(180,220,240);
+  doc.text('Ce certificat est fièrement décerné à',148.5,65,{align:'center'});
+
+  // NAME
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(36); doc.setTextColor(255,215,0);
+  doc.text(name,148.5,85,{align:'center'});
+
+  // Underline name
+  const nameW = doc.getTextWidth(name);
+  const nx=148.5-nameW/2;
+  doc.setDrawColor(255,215,0); doc.setLineWidth(0.6);
+  doc.line(nx,88,nx+nameW,88);
+
+  // Hero title
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(14); doc.setTextColor(0,255,136);
+  doc.text(`${h.emoji}  ${h.fr}`,148.5,102,{align:'center'});
+
+  // Description
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(10); doc.setTextColor(180,210,230);
+  doc.text('Pour avoir complété avec succès le parcours éducatif sur les dangers des microplastiques',148.5,117,{align:'center'});
+  doc.text('et avoir démontré un engagement exemplaire pour la protection de notre planète.',148.5,124,{align:'center'});
+
+  // Score box
+  doc.setFillColor(0,212,255,0.08);
+  doc.setDrawColor(0,212,255); doc.setLineWidth(0.5);
+  doc.roundedRect(94,132,109,18,4,4,'FD');
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(12); doc.setTextColor(0,212,255);
+  doc.text(`Score obtenu : ${score} / 8 réponses correctes`,148.5,143,{align:'center'});
+
+  // Date & location
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(10); doc.setTextColor(120,170,200);
+  doc.text(`Délivré le ${today}`,148.5,162,{align:'center'});
+
+  // Bottom line
+  doc.setDrawColor(0,212,255); doc.setLineWidth(0.4);
+  doc.line(30,170,267,170);
+
+  // Footer
+  doc.setFontSize(8); doc.setTextColor(80,130,160);
+  doc.text('Sources: IUCN • WWF • Nature Medicine (2024) • UNEP • Université de Newcastle (2019)',148.5,178,{align:'center'});
+  doc.text('Ce certificat atteste de la sensibilisation à l\'urgence environnementale des microplastiques.',148.5,184,{align:'center'});
+
+  doc.save(`certificat-microplastiques-${name.toLowerCase().replace(/\s+/g,'-')}.pdf`);
+}
+
+/* ─── UTILS ─── */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function setProgress(pct){document.getElementById('progress-bar').style.width=pct+'%'}
+function restart(){step=0;score=0;answered=false;selectedHero=-1;showScreen('s0');setProgress(0)}
+</script>
+</body>
+</html>

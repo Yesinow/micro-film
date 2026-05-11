@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le Voyage des Microplastiques</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; overflow:hidden; }
+canvas { display:block; width:100vw; height:100vh; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const CV = document.getElementById('c');
+const CX = CV.getContext('2d');
+let W, H;
+function resize(){ CV.width = W = innerWidth; CV.height = H = innerHeight; }
+resize(); window.addEventListener('resize', resize);
+
+// ── Utilities ──────────────────────────────────────────────────────────────
+function bgGrad(c1,c2){
+  const g=CX.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,c1); g.addColorStop(1,c2);
+  CX.fillStyle=g; CX.fillRect(0,0,W,H);
+}
+function rr(x,y,w,h,r){
+  CX.beginPath();
+  CX.moveTo(x+r,y); CX.lineTo(x+w-r,y); CX.arcTo(x+w,y,x+w,y+r,r);
+  CX.lineTo(x+w,y+h-r); CX.arcTo(x+w,y+h,x+w-r,y+h,r);
+  CX.lineTo(x+r,y+h); CX.arcTo(x,y+h,x,y+h-r,r);
+  CX.lineTo(x,y+r); CX.arcTo(x,y,x+r,y,r); CX.closePath();
+}
+function circ(x,y,r,col,glow=0){
+  if(glow){ CX.shadowBlur=glow; CX.shadowColor=col; }
+  CX.fillStyle=col; CX.beginPath(); CX.arc(x,y,r,0,Math.PI*2); CX.fill();
+  if(glow) CX.shadowBlur=0;
+}
+function txt(s,x,y,sz,col,align='center',w='400'){
+  CX.font=`${w} ${sz}px system-ui,-apple-system,sans-serif`;
+  CX.fillStyle=col; CX.textAlign=align; CX.textBaseline='middle';
+  CX.fillText(s,x,y);
+}
+function lerp(a,b,t){ return a+(b-a)*Math.min(1,Math.max(0,t)); }
+function easeIn(t){ return t*t; }
+function easeOut(t){ return 1-(1-t)*(1-t); }
+
+// ── Particles ──────────────────────────────────────────────────────────────
+const COLS=['#4CC9F0','#F72585','#06D6A0','#E9C46A','#FF6B6B','#C77DFF','#90E0EF','#FFB703'];
+class Micro {
+  constructor(x,y,vx,vy,r,col,life){
+    this.x=x; this.y=y; this.vx=vx; this.vy=vy; this.r=r; this.col=col;
+    this.life=life; this.maxLife=life;
+    this.sh=Math.random(); this.ag=Math.random()*6.28; this.da=(Math.random()-.5)*.05;
+  }
+  update(){ this.x+=this.vx; this.y+=this.vy; this.ag+=this.da; this.life--; }
+  get dead(){ return this.life<=0||this.x<-60||this.x>W+60||this.y<-60||this.y>H+60; }
+  draw(){
+    const a=Math.min(1,this.life/40)*0.85;
+    CX.save(); CX.globalAlpha=a;
+    if(this.sh<.45){
+      CX.shadowBlur=5; CX.shadowColor=this.col;
+      circ(this.x,this.y,this.r,this.col);
+      CX.shadowBlur=0;
+    } else if(this.sh<.73){
+      CX.translate(this.x,this.y); CX.rotate(this.ag);
+      CX.fillStyle=this.col; CX.fillRect(-this.r,-this.r*.5,this.r*2,this.r);
+    } else {
+      CX.translate(this.x,this.y); CX.rotate(this.ag);
+      CX.strokeStyle=this.col; CX.lineWidth=this.r*.5;
+      CX.beginPath(); CX.moveTo(-this.r*3,0); CX.lineTo(this.r*3,0); CX.stroke();
+    }
+    CX.restore();
+  }
+}
+let parts=[];
+function addP(x,y,vx,vy,r,col,life=200){ parts.push(new Micro(x,y,vx,vy,r,col,life)); }
+
+// ── Scene helpers ───────────────────────────────────────────────────────────
+function drawStars(n=60,yMax=0.7){
+  CX.save(); CX.fillStyle='#fff';
+  for(let i=0;i<n;i++){
+    const x=((i*137.5)%100/100)*W;
+    const y=((i*73.3)%100/100)*H*yMax;
+    const a=.15+Math.sin(t*.015+i)*.12;
+    CX.globalAlpha=a;
+    CX.beginPath(); CX.arc(x,y,.9,0,Math.PI*2); CX.fill();
+  }
+  CX.restore();
+}
+
+function drawMountains(){
+  const pts=[.05,.44,.18,.52,.32,.38,.45,.48,.58,.35,.72,.5,.88,.42,1.02,.47];
+  CX.fillStyle='#0d1a2e';
+  CX.beginPath(); CX.moveTo(0,H);
+  for(let i=0;i<pts.length;i+=2) CX.lineTo(W*pts[i],H*(1-pts[i+1]));
+  CX.lineTo(W,H); CX.closePath(); CX.fill();
+  // Snow
+  CX.fillStyle='rgba(255,255,255,.13)';
+  for(let i=0;i<pts.length;i+=2){
+    if(pts[i+1]<.45) continue;
+    const px=W*pts[i], py=H*(1-pts[i+1]);
+    CX.beginPath(); CX.moveTo(px,py); CX.lineTo(px-W*.03,py+H*.04); CX.lineTo(px+W*.03,py+H*.04); CX.closePath(); CX.fill();
+  }
+}
+
+function drawOceanWaves(yFrac){
+  for(let l=0;l<3;l++){
+    const yy=H*yFrac+l*H*.03;
+    const amp=H*.02-l*H*.004;
+    CX.save(); CX.globalAlpha=.18-l*.04;
+    CX.fillStyle=l===0?'#48CAE4':'#90E0EF';
+    CX.beginPath(); CX.moveTo(0,yy);
+    for(let x2=0;x2<=W;x2+=8)
+      CX.lineTo(x2,yy+Math.sin((x2/W)*Math.PI*5+t*(.04+l*.012))*amp);
+    CX.lineTo(W,0); CX.lineTo(0,0); CX.closePath(); CX.fill();
+    CX.restore();
+  }
+}
+
+function drawFish(x,y,dir,sc2){
+  CX.save(); CX.translate(x,y); CX.scale(dir*sc2,sc2);
+  CX.fillStyle='#2E86AB';
+  CX.beginPath(); CX.ellipse(0,0,22,9,0,0,Math.PI*2); CX.fill();
+  CX.fillStyle='#1a5f7a';
+  CX.beginPath(); CX.moveTo(-18,0); CX.lineTo(-30,-10); CX.lineTo(-30,10); CX.closePath(); CX.fill();
+  CX.fillStyle='#fff'; CX.beginPath(); CX.arc(12,0,4,0,Math.PI*2); CX.fill();
+  CX.fillStyle='#111'; CX.beginPath(); CX.arc(13,0,2.5,0,Math.PI*2); CX.fill();
+  CX.restore();
+}
+
+function drawWashingMachine(x,y){
+  const w=70,h=80;
+  CX.fillStyle='#dce8f0'; CX.strokeStyle='#99b'; CX.lineWidth=1.5;
+  rr(x,y,w,h,6); CX.fill(); CX.stroke();
+  CX.fillStyle='#1e2e3e';
+  CX.beginPath(); CX.arc(x+35,y+46,22,0,Math.PI*2); CX.fill();
+  CX.save(); CX.translate(x+35,y+46); CX.rotate(t*.08);
+  CX.strokeStyle='rgba(100,180,220,.5)'; CX.lineWidth=2;
+  for(let a=0;a<4;a++){
+    CX.beginPath(); CX.moveTo(0,0);
+    CX.lineTo(Math.cos(a*Math.PI/2)*18,Math.sin(a*Math.PI/2)*18);
+    CX.stroke();
+  }
+  CX.restore();
+  CX.fillStyle='#556'; CX.fillRect(x+8,y+10,54,14);
+  CX.fillStyle='rgba(255,80,80,.8)'; CX.beginPath(); CX.arc(x+54,y+17,4,0,Math.PI*2); CX.fill();
+}
+
+function drawCar(x,y){
+  CX.fillStyle='#2d4a8a';
+  CX.fillRect(x,y+12,100,28);
+  CX.beginPath(); CX.moveTo(x+18,y+12); CX.lineTo(x+28,y-2); CX.lineTo(x+72,y-2); CX.lineTo(x+86,y+12); CX.closePath(); CX.fill();
+  CX.fillStyle='rgba(150,220,255,.6)';
+  CX.fillRect(x+30,y,19,11); CX.fillRect(x+51,y,19,11);
+  ['#111','#111'].forEach((c,i)=>{
+    CX.fillStyle=c; CX.beginPath(); CX.arc(x+20+i*60,y+38,12,0,Math.PI*2); CX.fill();
+    CX.fillStyle='#555'; CX.beginPath(); CX.arc(x+20+i*60,y+38,5,0,Math.PI*2); CX.fill();
+  });
+}
+
+function drawFactory(x,y){
+  CX.fillStyle='#1e1e2e'; CX.fillRect(x,y,90,H-y);
+  CX.fillStyle='#151525';
+  CX.fillRect(x+10,y-60,22,65); CX.fillRect(x+55,y-90,22,95);
+  for(let i=0;i<5;i++){
+    const sy=y-60-i*20-((t*0.6+i*15)%80);
+    CX.save(); CX.globalAlpha=Math.max(0,.18-i*.03);
+    CX.fillStyle='#888';
+    CX.beginPath(); CX.arc(x+21,sy,12+i*5,0,Math.PI*2); CX.fill();
+    CX.restore();
+  }
+  for(let i=0;i<5;i++){
+    const sy=y-90-i*22-((t*0.5+i*18)%90);
+    CX.save(); CX.globalAlpha=Math.max(0,.15-i*.025);
+    CX.fillStyle='#aaa';
+    CX.beginPath(); CX.arc(x+66,sy,14+i*5,0,Math.PI*2); CX.fill();
+    CX.restore();
+  }
+  CX.fillStyle='rgba(255,200,60,.25)';
+  for(let row=0;row<4;row++) for(let col=0;col<3;col++) CX.fillRect(x+8+col*25,y+15+row*28,16,20);
+}
+
+function drawHumanBody(cx2,cy2,h){
+  const hw=h*.12,bw=h*.2,bh=h*.42,legW=h*.07,legH=h*.38;
+  CX.strokeStyle='rgba(247,37,133,.5)'; CX.lineWidth=1.5;
+  CX.fillStyle='rgba(247,37,133,.06)';
+  // head
+  rr(cx2-hw,cy2-h*.5,hw*2,hw*2,hw); CX.fill(); CX.stroke();
+  // torso
+  rr(cx2-bw,cy2-h*.32,bw*2,bh,bw*.2); CX.fill(); CX.stroke();
+  // arms
+  rr(cx2-bw-legW-4,cy2-h*.3,legW,bh*.6,legW/2); CX.fill(); CX.stroke();
+  rr(cx2+bw+4,cy2-h*.3,legW,bh*.6,legW/2); CX.fill(); CX.stroke();
+  // legs
+  rr(cx2-legW-3,cy2-h*.32+bh,legW,legH,legW/2); CX.fill(); CX.stroke();
+  rr(cx2+3,cy2-h*.32+bh,legW,legH,legW/2); CX.fill(); CX.stroke();
+  // veins
+  CX.save(); CX.strokeStyle='rgba(247,37,133,.2)'; CX.lineWidth=1; CX.setLineDash([3,6]);
+  for(let i=0;i<4;i++){
+    CX.beginPath();
+    CX.moveTo(cx2-bw+i*bw*.6,cy2-h*.32);
+    CX.bezierCurveTo(cx2-bw+i*bw*.5+Math.sin(t*.03+i)*12,cy2,cx2+i*bw*.4,cy2+h*.05,cx2-bw+i*bw*.6,cy2-h*.32+bh);
+    CX.stroke();
+  }
+  CX.setLineDash([]); CX.restore();
+}
+
+function drawTree(x,baseY,h){
+  if(h<5) return;
+  CX.fillStyle='#5d4037'; CX.fillRect(x-7,baseY-h*.28,14,h*.28);
+  for(let l=0;l<3;l++){
+    const lh=h*(.42+l*.06), lw=h*(.32-l*.05);
+    const ly=baseY-h*.28-lh*.38-l*h*.14;
+    const sw=Math.sin(t*.02+l*.4)*3;
+    CX.shadowBlur=20; CX.shadowColor='rgba(6,214,160,.3)';
+    CX.fillStyle=`rgba(${28+l*8},${130+l*15},${40+l*5},.9)`;
+    CX.beginPath(); CX.moveTo(x+sw,ly); CX.lineTo(x-lw+sw,ly+lh*.6); CX.lineTo(x+lw+sw,ly+lh*.6); CX.closePath(); CX.fill();
+    CX.shadowBlur=0;
+  }
+}
+
+// ── Narration box ───────────────────────────────────────────────────────────
+function narration(title,stat,progress){
+  let a=1;
+  if(progress<.1) a=progress/.1;
+  else if(progress>.88) a=(1-progress)/.12;
+  const bw=Math.min(580,W*.88), bh=88, bx=W/2-bw/2, by=H-bh-16;
+  CX.save(); CX.globalAlpha=a;
+  CX.fillStyle='rgba(4,13,31,.82)'; CX.strokeStyle='rgba(255,255,255,.12)'; CX.lineWidth=1;
+  rr(bx,by,bw,bh,14); CX.fill(); CX.stroke();
+  txt(title,W/2,by+24,Math.min(W*.032,20),'#fff','center','700');
+  txt(stat,W/2,by+58,Math.min(W*.024,14),'rgba(255,255,255,.55)','center','400');
+  CX.restore();
+}
+
+// ── UI overlay ──────────────────────────────────────────────────────────────
+const SNAMES=['Introduction','Les Sources','L\'Envol','L\'Océan','Chaîne Alimentaire','Notre Corps','Agir'];
+function drawUI(){
+  const N=7, gap=20, dotR=4.5;
+  const sx=W/2-((N-1)*gap)/2;
+  // dots
+  for(let i=0;i<N;i++){
+    const x=sx+i*gap, y=22;
+    CX.save();
+    if(i===sc){ CX.shadowBlur=10; CX.shadowColor='#fff'; circ(x,y,dotR*1.5,'#fff'); }
+    else if(i<sc){ circ(x,y,dotR,'rgba(255,255,255,.55)'); }
+    else { circ(x,y,dotR,'rgba(255,255,255,.18)'); }
+    CX.shadowBlur=0; CX.restore();
+  }
+  // scene name
+  CX.save(); CX.globalAlpha=.4;
+  txt(SNAMES[sc],W/2,44,Math.min(W*.022,13),'#fff');
+  CX.restore();
+  // progress bar (auto-advance scenes)
+  if(DURS[sc]>0){
+    const bw=Math.min(180,W*.28), pr=Math.min(1,scT/(DURS[sc]*60));
+    const bx=W/2-bw/2, by=56;
+    CX.save(); CX.globalAlpha=.22; CX.fillStyle='rgba(255,255,255,.15)'; CX.fillRect(bx,by,bw,2);
+    CX.globalAlpha=.55; CX.fillStyle='#fff'; CX.fillRect(bx,by,bw*pr,2);
+    CX.restore();
+  }
+  // nav arrows
+  const showPrev=sc>0, showNext=sc<6;
+  if(showPrev){
+    CX.save(); CX.globalAlpha=.3;
+    CX.fillStyle='rgba(255,255,255,.08)'; CX.beginPath(); CX.arc(36,H/2,26,0,Math.PI*2); CX.fill();
+    CX.strokeStyle='rgba(255,255,255,.6)'; CX.lineWidth=2;
+    CX.beginPath(); CX.moveTo(44,H/2-9); CX.lineTo(28,H/2); CX.lineTo(44,H/2+9); CX.stroke();
+    CX.restore();
+  }
+  if(showNext){
+    const pulse=(.3+(Math.sin(t*.04)+1)*.1);
+    CX.save(); CX.globalAlpha=pulse;
+    CX.fillStyle='rgba(255,255,255,.08)'; CX.beginPath(); CX.arc(W-36,H/2,26,0,Math.PI*2); CX.fill();
+    CX.strokeStyle='rgba(255,255,255,.6)'; CX.lineWidth=2;
+    CX.beginPath(); CX.moveTo(W-44,H/2-9); CX.lineTo(W-28,H/2); CX.lineTo(W-44,H/2+9); CX.stroke();
+    CX.restore();
+  }
+  if(sc===6 && scT>240){
+    const a2=Math.min(1,(scT-240)/60);
+    CX.save(); CX.globalAlpha=a2;
+    CX.fillStyle='rgba(6,214,160,.15)'; CX.strokeStyle='rgba(6,214,160,.5)'; CX.lineWidth=1.5;
+    rr(W/2-90,H-68,180,42,21); CX.fill(); CX.stroke();
+    txt('↩ Recommencer',W/2,H-47,Math.min(W*.025,15),'rgba(6,214,160,.9)','center','600');
+    CX.restore();
+  }
+}
+
+// ── Scene 0: Intro ──────────────────────────────────────────────────────────
+function s0(){
+  bgGrad('#040d1f','#0b1a3e');
+  drawStars(80,.75);
+  // floating particles
+  if(t%3===0 && parts.length<160)
+    addP(Math.random()*W,H+10,(Math.random()-.5)*.5,-(Math.random()*.5+.2),
+      Math.random()*2.5+.5,COLS[t%8],400+Math.random()*200);
+  const a=Math.min(1,scT/80);
+  CX.save(); CX.globalAlpha=a;
+  CX.shadowBlur=50; CX.shadowColor='rgba(76,201,240,.35)';
+  txt('LE VOYAGE DES',W/2,H/2-52,Math.min(W*.055,42),'rgba(76,201,240,.75)','center','300');
+  CX.shadowBlur=0;
+  txt('MICROPLASTIQUES',W/2,H/2+8,Math.min(W*.09,72),'#ffffff','center','900');
+  CX.globalAlpha=a*.7;
+  txt('Une pollution invisible qui traverse notre monde',W/2,H/2+62,Math.min(W*.032,20),'#90E0EF','center','300');
+  if(scT>80){
+    const a2=Math.min(1,(scT-80)/50);
+    CX.globalAlpha=a2;
+    const bw=Math.min(380,W*.7),bh=82,bx=W/2-bw/2,by=H/2+105;
+    CX.fillStyle='rgba(247,37,133,.1)'; CX.strokeStyle='rgba(247,37,133,.35)'; CX.lineWidth=1;
+    rr(bx,by,bw,bh,14); CX.fill(); CX.stroke();
+    txt('5g de plastique par semaine',W/2,by+28,Math.min(W*.048,36),'#FF6B6B','center','800');
+    CX.globalAlpha=a2*.6;
+    txt('l\'équivalent d\'une carte bancaire ingérée chaque semaine',W/2,by+60,Math.min(W*.022,13),'#FF6B6B');
+  }
+  if(scT>140){
+    const ab=(Math.sin(t*.05)+1)*.5*.5;
+    CX.globalAlpha=ab;
+    txt('↓  Cliquer ou appuyer Espace pour commencer',W/2,H-36,13,'rgba(255,255,255,.7)');
+  }
+  CX.restore();
+}
+
+// ── Scene 1: Sources ────────────────────────────────────────────────────────
+function s1(){
+  bgGrad('#0d0600','#1c0c00');
+  drawStars(30,.5);
+  const gY=H*.7;
+  // ground
+  CX.fillStyle='#111108'; CX.fillRect(0,gY,W,H-gY);
+  // road
+  CX.fillStyle='#1c1c1c'; CX.fillRect(0,gY+5,W,42);
+  CX.fillStyle='rgba(255,255,200,.08)';
+  for(let i=-(t*2%80);i<W+80;i+=80) CX.fillRect(i,gY+23,55,4);
+  // city silhouette
+  const bldgs=[.04,.28,.1,.38,.18,.22,.24,.42,.32,.26,.38,.35,.44,.2,.5,.4,.56,.28,.63,.36,.7,.24,.76,.34,.82,.22,.88,.4,.94,.3];
+  CX.fillStyle='#0d0800';
+  for(let i=0;i<bldgs.length;i+=2){
+    const bh=H*bldgs[i+1], bx=W*bldgs[i], bw2=W*.06;
+    CX.fillRect(bx,gY-bh,bw2,bh);
+    // windows
+    CX.fillStyle='rgba(255,200,60,.2)';
+    for(let wy=gY-bh+8;wy<gY-6;wy+=16) for(let wx=bx+4;wx<bx+bw2-6;wx+=10) if(Math.sin(wx*.5+wy*.3)>.2) CX.fillRect(wx,wy,6,8);
+    CX.fillStyle='#0d0800';
+  }
+  // washing machine
+  const wmX=W*.14-35, wmY=gY-82;
+  drawWashingMachine(wmX,wmY);
+  if(t%5===0) addP(wmX+35,wmY+25,(Math.random()-.3)*1.8,-(Math.random()*1.8+.4),Math.random()*2.5+.5,COLS[t%8],260+Math.random()*100);
+  // car
+  const carX=((t*1.5+100)%(W+200))-200, carY=gY+7;
+  drawCar(carX,carY);
+  if(t%6===0){
+    addP(carX+20,carY+38,(Math.random()-.5)*1.5,-(Math.random()*.8+.2),Math.random()*1.5+.4,'#999',140+Math.random()*60);
+    addP(carX+80,carY+38,(Math.random()-.5)*1.5,-(Math.random()*.8+.2),Math.random()*1.5+.4,'#777',140+Math.random()*60);
+  }
+  // factory
+  const facX=W*.78, facY=gY-150;
+  drawFactory(facX,facY);
+  if(t%4===0) addP(facX+21+Math.random()*45,facY-30,(Math.random()-.5)*1.2,-(Math.random()*1.5+.4),Math.random()*2+.5,COLS[Math.floor(Math.random()*3)],200+Math.random()*100);
+  // labels
+  const la=Math.min(1,scT/50);
+  CX.save(); CX.globalAlpha=la;
+  function lbl(tx,lx,ly,col){ CX.fillStyle='rgba(0,0,0,.55)'; const mw=CX.measureText(tx).width; rr(lx-mw/2-8,ly-12,mw+16,24,6); CX.fill(); txt(tx,lx,ly,Math.min(W*.02,13),col); }
+  lbl('🧺 Vêtements synthétiques',wmX+35,wmY-18,'#4CC9F0');
+  lbl('🚗 Usure des pneus',W*.45,gY-18,'#F4A261');
+  lbl('🏭 Industrie',facX+45,facY-50,'#E9C46A');
+  CX.restore();
+  narration('Comment naissent les microplastiques ?','700 000 fibres libérées par un seul lavage de vêtements synthétiques',scT/(DURS[1]*60));
+}
+
+// ── Scene 2: L'Air ──────────────────────────────────────────────────────────
+function s2(){
+  bgGrad('#060e1c','#0e2440');
+  drawStars(40,.55);
+  drawMountains();
+  // wind lines
+  CX.save(); CX.strokeStyle='rgba(144,224,239,.12)'; CX.lineWidth=1;
+  for(let j=0;j<10;j++){
+    const yy=H*(.08+j*.08), off=((t*2+j*70)%W);
+    CX.beginPath(); CX.moveTo(off-50,yy); CX.bezierCurveTo(off,yy-8,off+30,yy+8,off+70,yy); CX.stroke();
+  }
+  CX.restore();
+  // clouds
+  [[.12,.12,.9],[.42,.18,1.1],[.7,.1,.75]].forEach(([xf,yf,sc2],i)=>{
+    const cx2=((xf*W+t*.4+(i*220))%(W*1.2))-W*.1;
+    const cy2=H*yf;
+    CX.save(); CX.globalAlpha=.1;
+    [0,-16,16,-8,8].forEach(dx=>{ CX.fillStyle='#fff'; CX.beginPath(); CX.arc(cx2+dx*sc2,cy2,18*sc2,0,Math.PI*2); CX.fill(); });
+    CX.restore();
+  });
+  // particles drifting
+  if(t%3===0 && parts.filter(p=>p.vx>0).length<100)
+    addP(-20,H*(.08+Math.random()*.65),(Math.random()*2+1.2),(Math.random()-.5)*.4,Math.random()*2.5+.5,COLS[Math.floor(Math.random()*8)],380+Math.random()*200);
+  // km counter
+  if(scT>60){
+    const a2=Math.min(1,(scT-60)/40), km=Math.min(1000,Math.floor((scT-60)*2.5));
+    CX.save(); CX.globalAlpha=a2;
+    CX.shadowBlur=30; CX.shadowColor='rgba(76,201,240,.5)';
+    txt(km+'+ km',W*.78,H*.3,Math.min(W*.075,60),'#4CC9F0','center','900');
+    CX.shadowBlur=0; CX.globalAlpha=a2*.6;
+    txt('parcourus dans l\'atmosphère',W*.78,H*.3+50,Math.min(W*.022,14),'#90E0EF');
+    CX.restore();
+  }
+  narration('Le vent emporte les microplastiques partout','136 particules / m² / jour retrouvées dans les Pyrénées — "zone vierge"',scT/(DURS[2]*60));
+}
+
+// ── Scene 3: Océan ──────────────────────────────────────────────────────────
+function s3(){
+  bgGrad('#03045E','#023E8A');
+  // deep gradient
+  CX.fillStyle='rgba(0,0,20,.6)'; CX.fillRect(0,H*.35,W,H*.65);
+  drawOceanWaves(.08);
+  // vortex particles
+  const cx2=W/2, cy2=H*.55;
+  if(t%2===0 && parts.length<280){
+    const ag2=Math.random()*Math.PI*2, rad=Math.min(W,H)*(.05+Math.random()*.32);
+    const px2=cx2+Math.cos(ag2)*rad, py2=cy2+Math.sin(ag2)*rad;
+    const tx2=-Math.sin(ag2)*(0.6+Math.random()*1.4), ty2=Math.cos(ag2)*(0.6+Math.random()*1.4);
+    addP(px2,py2,tx2,ty2,Math.random()*2.8+.6,COLS[Math.floor(Math.random()*8)],160+Math.random()*120);
+  }
+  // fish
+  [[.18,.38,1,.7],[.6,.45,-1,.9],[.35,.55,1,.6],[.75,.35,-1,.8]].forEach(([xf,yf,d,sc2],i)=>{
+    const fx=((xf*W+t*(.4+i*.2)*d+W*2)%W);
+    drawFish(fx,H*yf,d,sc2);
+    // particles inside fish
+    CX.save(); CX.globalAlpha=.55;
+    for(let j=0;j<3;j++) circ(fx+(j-1)*7*d,H*yf+(j-1)*3,2,'#FF6B6B',4);
+    CX.restore();
+  });
+  // Garbage Patch outline
+  if(scT>60){
+    const a2=Math.min(1,(scT-60)/40), r=Math.min(W,H)*.27;
+    CX.save(); CX.globalAlpha=a2*.5;
+    CX.strokeStyle='rgba(247,37,133,.55)'; CX.lineWidth=1.5; CX.setLineDash([6,6]);
+    CX.beginPath(); CX.arc(cx2,cy2,r,0,Math.PI*2); CX.stroke();
+    CX.setLineDash([]); CX.globalAlpha=a2*.5;
+    txt('Grand vortex du Pacifique',cx2,cy2-r-16,Math.min(W*.022,13),'rgba(247,37,133,.8)');
+    txt('1,6 million de km²  ·  3× la France',cx2,cy2-r+2,Math.min(W*.02,12),'rgba(247,37,133,.55)');
+    CX.restore();
+  }
+  narration('5 000 milliards de particules dans les océans','80% des déchets plastiques marins viennent des terres',scT/(DURS[3]*60));
+}
+
+// ── Scene 4: Chaîne alimentaire ─────────────────────────────────────────────
+function s4(){
+  bgGrad('#012A1A','#012030');
+  CX.fillStyle='rgba(0,20,50,.7)'; CX.fillRect(0,0,W,H);
+  // seaweed
+  for(let i=0;i<9;i++){
+    const sx=W*(.04+i*.11);
+    CX.strokeStyle='rgba(52,180,100,.25)'; CX.lineWidth=3;
+    CX.beginPath(); CX.moveTo(sx,H);
+    for(let j=1;j<=8;j++) CX.lineTo(sx+Math.sin(t*.02+j*.8+i)*14*(j/8),H-H*.16*(j/8));
+    CX.stroke();
+  }
+  const chainY=H*.48;
+  const stages=[
+    { x:W*.1,  label:'Plancton',      sc2:.7 },
+    { x:W*.3,  label:'Petit poisson', sc2:.9 },
+    { x:W*.52, label:'Grand poisson', sc2:1.4 },
+    { x:W*.72, label:'Notre assiette',sc2:1 },
+    { x:W*.9,  label:'Nous',          sc2:1 },
+  ];
+  stages.forEach((s,i)=>{
+    const a=Math.min(1,(scT-i*44)/44); if(a<=0) return;
+    CX.save(); CX.globalAlpha=a;
+    if(i===0){
+      for(let j=0;j<6;j++) circ(s.x+Math.cos(t*.04+j*1.05)*14,chainY+Math.sin(t*.04+j*1.05)*9,4*(j%2?1:.6),'#4CC9F0',6);
+    } else if(i<=2){
+      drawFish(s.x+Math.sin(t*.015+i)*10,chainY,1,s.sc2);
+      CX.globalAlpha=a*.7;
+      for(let j=0;j<(i*3+2);j++) circ(s.x+(j-i)*7,chainY-5+j*2,1.8,'#FF6B6B',4);
+    } else if(i===3){
+      // plate
+      CX.fillStyle='#e8e8e8'; CX.beginPath(); CX.ellipse(s.x,chainY+8,38,10,0,0,Math.PI*2); CX.fill();
+      CX.fillStyle='#fff'; CX.beginPath(); CX.ellipse(s.x,chainY+5,30,8,0,0,Math.PI*2); CX.fill();
+      CX.fillStyle='#E9C46A'; CX.beginPath(); CX.ellipse(s.x,chainY-2,22,7,0,0,Math.PI*2); CX.fill();
+      CX.globalAlpha=a*.8;
+      for(let j=0;j<5;j++) circ(s.x+(j-2)*8,chainY-2,2.5,COLS[j],5);
+    } else {
+      // human stick
+      CX.strokeStyle='rgba(255,255,255,.6)'; CX.lineWidth=2.5; CX.lineCap='round';
+      const hR=10;
+      CX.fillStyle='rgba(255,255,255,.6)'; CX.beginPath(); CX.arc(s.x,chainY-42,hR,0,Math.PI*2); CX.fill();
+      CX.beginPath();
+      CX.moveTo(s.x,chainY-32); CX.lineTo(s.x,chainY-8);
+      CX.moveTo(s.x-14,chainY-26); CX.lineTo(s.x+14,chainY-26);
+      CX.moveTo(s.x,chainY-8); CX.lineTo(s.x-10,chainY+18);
+      CX.moveTo(s.x,chainY-8); CX.lineTo(s.x+10,chainY+18);
+      CX.stroke();
+    }
+    CX.globalAlpha=a*.85;
+    txt(s.label,s.x,chainY+55,Math.min(W*.022,13),'rgba(255,255,255,.8)');
+    // arrows
+    if(i<stages.length-1){
+      const na=Math.min(1,(scT-(i+1)*44)/44); if(na<=0){ CX.restore(); return; }
+      CX.globalAlpha=na*.5; CX.strokeStyle='rgba(255,255,255,.4)'; CX.lineWidth=1.5;
+      const ax1=s.x+35*s.sc2, ax2=stages[i+1].x-30;
+      CX.beginPath(); CX.moveTo(ax1,chainY); CX.lineTo(ax2,chainY); CX.stroke();
+      CX.fillStyle='rgba(255,255,255,.4)';
+      CX.beginPath(); CX.moveTo(ax2,chainY); CX.lineTo(ax2-8,chainY-5); CX.lineTo(ax2-8,chainY+5); CX.closePath(); CX.fill();
+    }
+    CX.restore();
+  });
+  // bioaccumulation label
+  if(scT>220){
+    const a2=Math.min(1,(scT-220)/50);
+    CX.save(); CX.globalAlpha=a2;
+    txt('Concentration × 1 000 000 à chaque maillon',W/2,H*.82,Math.min(W*.028,18),'#FF6B6B','center','700');
+    CX.restore();
+  }
+  narration('La chaîne alimentaire contaminée','700+ espèces marines affectées — des plus petites aux plus grandes',scT/(DURS[4]*60));
+}
+
+// ── Scene 5: Notre corps ────────────────────────────────────────────────────
+function s5(){
+  bgGrad('#150022','#280040');
+  drawStars(25,.9);
+  const cx2=W*.6, cy2=H*.48, bH=H*.55;
+  CX.save();
+  CX.shadowBlur=35; CX.shadowColor='rgba(247,37,133,.2)';
+  drawHumanBody(cx2,cy2,bH);
+  CX.shadowBlur=0; CX.restore();
+  // particles entering
+  if(t%5===0){
+    addP(cx2+Math.sin(t*.1)*20,cy2-bH*.55,(Math.random()-.5)*.8,(Math.random()*1.2+.4),Math.random()*2+.5,'#FF6B6B',100+Math.random()*50);
+    addP(cx2-bH*.08,cy2-bH*.16,(Math.random()*.8),(Math.random()-.5)*.8,Math.random()*1.5+.4,'#F72585',80+Math.random()*50);
+  }
+  // organ indicators
+  if(scT>60){
+    const a=Math.min(1,(scT-60)/50);
+    const organs=[
+      {x:cx2-bH*.1,y:cy2-bH*.23,l:'Poumons',c:'#ADE8F4'},
+      {x:cx2+bH*.06,y:cy2-bH*.17,l:'Cœur',c:'#FF6B6B'},
+      {x:cx2,y:cy2+bH*.04,l:'Foie',c:'#E9C46A'},
+      {x:cx2,y:cy2-bH*.43,l:'Cerveau',c:'#C77DFF'},
+    ];
+    organs.forEach(o=>{
+      CX.save(); CX.globalAlpha=a;
+      CX.shadowBlur=15; CX.shadowColor=o.c;
+      circ(o.x,o.y,5,o.c); CX.shadowBlur=0;
+      CX.strokeStyle=o.c+'50'; CX.lineWidth=1; CX.setLineDash([3,4]);
+      CX.beginPath(); CX.moveTo(o.x-12,o.y); CX.lineTo(o.x-48,o.y); CX.stroke();
+      CX.setLineDash([]);
+      txt(o.l,o.x-62,o.y,Math.min(W*.02,12),o.c,'right','600');
+      CX.restore();
+    });
+  }
+  // big stat
+  if(scT>110){
+    const a2=Math.min(1,(scT-110)/50);
+    CX.save(); CX.globalAlpha=a2;
+    CX.shadowBlur=40; CX.shadowColor='rgba(247,37,133,.4)';
+    txt('77%',W*.22,H*.42,Math.min(W*.14,100),'#F72585','center','900');
+    CX.shadowBlur=0; CX.globalAlpha=a2*.7;
+    txt('des humains testés ont',W*.22,H*.42+62,Math.min(W*.022,14),'rgba(255,180,210,.8)');
+    txt('des microplastiques dans le sang',W*.22,H*.42+84,Math.min(W*.022,14),'rgba(255,180,210,.8)');
+    CX.restore();
+  }
+  narration('Ils sont dans notre corps','Retrouvés dans le sang, les poumons, le cœur, le cerveau et le placenta humain',scT/(DURS[5]*60));
+}
+
+// ── Scene 6: Agir ───────────────────────────────────────────────────────────
+function s6(){
+  bgGrad('#002b1a','#004d30');
+  // particles (green)
+  if(t%6===0 && parts.length<80)
+    addP(Math.random()*W,H+10,(Math.random()-.5)*.3,-(Math.random()*.6+.2),Math.random()*2+.5,'#06D6A0',300+Math.random()*150);
+  // growing tree
+  const tGrow=Math.min(1,scT/110);
+  drawTree(W*.5,H*.82,H*.42*easeOut(tGrow));
+  // solutions grid
+  const sols=[
+    {i:'🛍️',t:'Refuser le plastique jetable',d:25},
+    {i:'👕',t:'Filtrer sa lessive (Guppyfriend)',d:55},
+    {i:'🚲',t:'Réduire la voiture',d:85},
+    {i:'🧵',t:'Fibres naturelles (coton, lin)',d:115},
+    {i:'🗳️',t:'Agir politiquement',d:145},
+    {i:'🌊',t:'Nettoyer les plages',d:175},
+  ];
+  const cols2=3, cellW=W/cols2;
+  sols.forEach((s,i)=>{
+    const a=Math.min(1,Math.max(0,(scT-s.d)/35)); if(a<=0) return;
+    const col2=i%cols2, row2=Math.floor(i/cols2);
+    const x=cellW*col2+cellW/2, y=H*(.06+row2*.15);
+    CX.save(); CX.globalAlpha=a;
+    CX.fillStyle='rgba(255,255,255,.05)'; CX.strokeStyle='rgba(255,255,255,.1)'; CX.lineWidth=1;
+    rr(x-cellW*.42,y-28,cellW*.84,60,12); CX.fill(); CX.stroke();
+    txt(s.i,x,y-4,26,'#fff');
+    txt(s.t,x,y+24,Math.min(W*.022,13),'rgba(255,255,255,.8)');
+    CX.restore();
+  });
+  // final message
+  if(scT>210){
+    const a2=Math.min(1,(scT-210)/70);
+    CX.save(); CX.globalAlpha=a2;
+    CX.shadowBlur=35; CX.shadowColor='rgba(6,214,160,.5)';
+    txt('Le changement commence maintenant',W/2,H*.75,Math.min(W*.042,30),'#06D6A0','center','700');
+    CX.shadowBlur=0; CX.globalAlpha=a2*.6;
+    txt('Partagez ce message · Sensibilisez votre entourage',W/2,H*.75+44,Math.min(W*.025,16),'rgba(180,255,220,.8)');
+    CX.restore();
+  }
+}
+
+// ── Scene config ────────────────────────────────────────────────────────────
+const SCENES=[s0,s1,s2,s3,s4,s5,s6];
+const DURS  =[6, 9, 9, 9, 9, 9, 0];
+let sc=0, scT=0, t=0;
+
+// ── Transition ──────────────────────────────────────────────────────────────
+let inTrans=false, tAlpha=0, tDir=1, nextSc=0;
+function goTo(n){
+  if(n<0||n>=7||inTrans) return;
+  nextSc=n; inTrans=true; tDir=1;
+}
+function next(){ sc<6?goTo(sc+1):goTo(0); }
+function prev(){ sc>0?goTo(sc-1):null; }
+
+// ── Events ──────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); next(); }
+  if(e.key==='ArrowLeft'){ e.preventDefault(); prev(); }
+});
+let touchX0=0;
+CV.addEventListener('touchstart',e=>{ touchX0=e.touches[0].clientX; });
+CV.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-touchX0;
+  Math.abs(dx)>50 ? (dx<0?next():prev()) : next();
+});
+CV.addEventListener('click',e=>{
+  const x=e.clientX,y=e.clientY;
+  if(x<72&&Math.abs(y-H/2)<40){ prev(); return; }
+  if(x>W-72&&Math.abs(y-H/2)<40){ next(); return; }
+  if(sc===6&&scT>240&&x>W/2-90&&x<W/2+90&&y>H-68&&y<H-26){ goTo(0); return; }
+  const N=7,gap=20,sx=W/2-((N-1)*gap)/2;
+  for(let i=0;i<N;i++) if(Math.abs(x-(sx+i*gap))<14&&Math.abs(y-22)<14){ goTo(i); return; }
+  next();
+});
+
+// ── Main loop ───────────────────────────────────────────────────────────────
+function frame(){
+  t++; scT++;
+  W=CV.width; H=CV.height;
+  parts=parts.filter(p=>{ p.update(); return !p.dead; });
+  SCENES[sc]();
+  parts.forEach(p=>p.draw());
+  drawUI();
+  // transition fade
+  if(inTrans){
+    tAlpha=tDir===1?Math.min(1,tAlpha+.07):Math.max(0,tAlpha-.07);
+    CX.fillStyle=`rgba(0,0,0,${tAlpha})`;
+    CX.fillRect(0,0,W,H);
+    if(tAlpha>=1&&tDir===1){ sc=nextSc; scT=0; parts=[]; tDir=-1; }
+    if(tAlpha<=0&&tDir===-1) inTrans=false;
+  }
+  // auto-advance
+  if(!inTrans&&DURS[sc]>0&&scT>=DURS[sc]*60) next();
+  requestAnimationFrame(frame);
+}
+frame();
+</script>
+</body>
+</html>

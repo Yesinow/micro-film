@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Microplastiques dans la Chaîne Alimentaire</title>
+  <style>
+    /* ─── Reset & Base ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ocean-deep:   #0a4f7c;
+      --ocean-mid:    #1a7abf;
+      --ocean-light:  #4fb3e8;
+      --ocean-pale:   #c8ecf8;
+      --sand:         #f5d98e;
+      --danger:       #e74c3c;
+      --warning:      #f39c12;
+      --success:      #27ae60;
+      --plastic-pink: #f4a7c3;
+      --white:        #ffffff;
+      --text-dark:    #1a2a3a;
+      --text-muted:   #5a7a8a;
+      --card-bg:      rgba(255,255,255,0.92);
+      --shadow:       0 8px 32px rgba(10,79,124,0.15);
+      --radius:       18px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(180deg, #bde8f7 0%, #7ec8e3 30%, #4fb3e8 60%, #f5d98e 100%);
+      min-height: 100vh;
+      color: var(--text-dark);
+      overflow-x: hidden;
+    }
+
+    /* ─── Ocean Animated Background ───────────────────────────────── */
+    .ocean-bg {
+      position: fixed; inset: 0; z-index: -1; overflow: hidden;
+    }
+    .wave {
+      position: absolute; bottom: 0; left: -100%;
+      width: 300%; height: 160px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 50% 50% 0 0 / 60px 60px 0 0;
+      animation: wave 8s linear infinite;
+    }
+    .wave:nth-child(2) { animation-delay: -3s; animation-duration: 11s; opacity: .5; height: 120px; }
+    .wave:nth-child(3) { animation-delay: -6s; animation-duration: 15s; opacity: .3; height: 90px; }
+
+    @keyframes wave {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(33.33%); }
+    }
+
+    /* Floating particles */
+    .particles { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(244,167,195,0.6);
+      animation: float linear infinite;
+    }
+
+    @keyframes float {
+      0%   { transform: translateY(100vh) rotate(0deg);   opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { transform: translateY(-100px) rotate(720deg); opacity: 0; }
+    }
+
+    /* ─── Header ───────────────────────────────────────────────────── */
+    header {
+      text-align: center;
+      padding: 3rem 1rem 2rem;
+      position: relative;
+    }
+
+    .badge {
+      display: inline-block;
+      background: var(--danger);
+      color: #fff;
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      padding: .35rem 1rem;
+      border-radius: 20px;
+      margin-bottom: 1rem;
+    }
+
+    header h1 {
+      font-size: clamp(2rem, 6vw, 4rem);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: .5rem;
+    }
+
+    header h1 .micro  { color: var(--danger); }
+    header h1 .plastic { color: var(--ocean-deep); }
+
+    header p.subtitle {
+      max-width: 560px;
+      margin: .8rem auto 0;
+      color: var(--ocean-deep);
+      font-size: 1.05rem;
+      opacity: .9;
+    }
+
+    /* ─── Section wrapper ──────────────────────────────────────────── */
+    .section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.2rem 3rem;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--ocean-deep);
+      margin-bottom: 2rem;
+      position: relative;
+    }
+    .section-title::after {
+      content: '';
+      display: block;
+      width: 60px; height: 4px;
+      background: linear-gradient(90deg, var(--danger), var(--ocean-mid));
+      border-radius: 4px;
+      margin: .5rem auto 0;
+    }
+
+    /* ─── Chain Infographic ────────────────────────────────────────── */
+    .chain-wrapper {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 2.5rem 1.5rem;
+      margin-bottom: 3rem;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.6);
+    }
+
+    .chain {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0;
+    }
+
+    .chain-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      flex: 0 0 auto;
+      cursor: pointer;
+      transition: transform .25s;
+    }
+    .chain-step:hover { transform: translateY(-6px); }
+    .chain-step:hover .circle { box-shadow: 0 16px 40px rgba(10,79,124,0.3); }
+
+    .circle {
+      width: clamp(90px, 13vw, 130px);
+      height: clamp(90px, 13vw, 130px);
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e8f6fd 0%, #c2e8f7 100%);
+      border: 3px solid var(--ocean-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: clamp(2rem, 4vw, 3rem);
+      box-shadow: 0 6px 20px rgba(10,79,124,0.18);
+      position: relative;
+      transition: box-shadow .25s;
+    }
+
+    .circle .step-num {
+      position: absolute;
+      top: -8px; right: -8px;
+      background: var(--ocean-deep);
+      color: #fff;
+      font-size: .65rem;
+      font-weight: 800;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* pollution overlay */
+    .circle.polluted { background: linear-gradient(135deg, #fde8f0 0%, #f7c2d8 100%); border-color: var(--plastic-pink); }
+    .circle.danger   { background: linear-gradient(135deg, #fdecea 0%, #f7c5c2 100%); border-color: var(--danger); }
+
+    .step-label {
+      margin-top: .8rem;
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--ocean-deep);
+      max-width: clamp(80px, 12vw, 120px);
+      line-height: 1.3;
+    }
+
+    /* Arrow */
+    .chain-arrow {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      padding: 0 .4rem;
+      margin-bottom: 2rem;
+    }
+    .chain-arrow svg {
+      width: clamp(24px, 4vw, 40px);
+      height: auto;
+    }
+
+    /* ─── Stats Bar ────────────────────────────────────────────────── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1.2rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.8rem 1.2rem;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.6);
+      backdrop-filter: blur(12px);
+      transition: transform .2s;
+    }
+    .stat-card:hover { transform: translateY(-4px); }
+
+    .stat-icon { font-size: 2.2rem; margin-bottom: .5rem; }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--danger), var(--ocean-mid));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label { font-size: .78rem; color: var(--text-muted); margin-top: .3rem; font-weight: 600; }
+
+    /* ─── Detail Cards ─────────────────────────────────────────────── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.6);
+      backdrop-filter: blur(12px);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(10,79,124,0.22); }
+
+    .card-header {
+      padding: 1.2rem 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+      font-weight: 800;
+      font-size: 1rem;
+    }
+    .card-header .icon { font-size: 1.5rem; }
+
+    .card-body { padding: 0 1.4rem 1.4rem; }
+    .card-body p { font-size: .9rem; color: var(--text-muted); line-height: 1.65; }
+
+    .tag-list { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
+    .tag {
+      background: rgba(79,179,232,0.12);
+      color: var(--ocean-deep);
+      border: 1px solid rgba(79,179,232,0.3);
+      border-radius: 20px;
+      font-size: .72rem;
+      font-weight: 700;
+      padding: .25rem .75rem;
+    }
+    .tag.danger { background: rgba(231,76,60,0.1); color: var(--danger); border-color: rgba(231,76,60,0.3); }
+
+    .card-header.source    { background: linear-gradient(135deg, #e8f6fd, #c2e8f7); color: var(--ocean-deep); }
+    .card-header.impact    { background: linear-gradient(135deg, #fdecea, #f7c5c2); color: var(--danger); }
+    .card-header.solution  { background: linear-gradient(135deg, #e8f8ef, #b7eecb); color: var(--success); }
+    .card-header.science   { background: linear-gradient(135deg, #f3e8fd, #d9c2f7); color: #7b2fbf; }
+
+    /* ─── Progress Bars ────────────────────────────────────────────── */
+    .progress-section {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 2rem;
+      margin-bottom: 3rem;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.6);
+    }
+
+    .progress-item { margin-bottom: 1.4rem; }
+    .progress-item:last-child { margin-bottom: 0; }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: .5rem;
+    }
+    .progress-name { font-size: .88rem; font-weight: 700; color: var(--text-dark); }
+    .progress-val  { font-size: .88rem; font-weight: 900; color: var(--danger); }
+
+    .bar-track {
+      background: rgba(79,179,232,0.15);
+      border-radius: 8px;
+      height: 10px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 8px;
+      background: linear-gradient(90deg, var(--ocean-mid), var(--danger));
+      width: 0;
+      transition: width 1.4s cubic-bezier(.22,1,.36,1);
+    }
+
+    /* ─── Quiz Section ─────────────────────────────────────────────── */
+    .quiz-section {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 2rem;
+      margin-bottom: 3rem;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.6);
+    }
+
+    .quiz-question { font-size: 1rem; font-weight: 700; color: var(--text-dark); margin-bottom: 1rem; }
+
+    .quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-bottom: 1rem; }
+
+    .quiz-btn {
+      background: rgba(79,179,232,0.1);
+      border: 2px solid rgba(79,179,232,0.3);
+      border-radius: 12px;
+      padding: .85rem 1rem;
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--ocean-deep);
+      cursor: pointer;
+      text-align: left;
+      transition: all .2s;
+    }
+    .quiz-btn:hover { background: rgba(79,179,232,0.2); border-color: var(--ocean-light); transform: translateY(-2px); }
+    .quiz-btn.correct { background: rgba(39,174,96,.15); border-color: var(--success); color: var(--success); }
+    .quiz-btn.wrong   { background: rgba(231,76,60,.12); border-color: var(--danger);  color: var(--danger); }
+
+    .quiz-feedback {
+      display: none;
+      padding: .9rem 1.2rem;
+      border-radius: 10px;
+      font-size: .9rem;
+      font-weight: 600;
+      margin-bottom: .8rem;
+    }
+    .quiz-feedback.show { display: block; }
+    .quiz-feedback.ok  { background: rgba(39,174,96,.12); color: var(--success); }
+    .quiz-feedback.ko  { background: rgba(231,76,60,.10); color: var(--danger); }
+
+    .quiz-nav { display: flex; gap: .75rem; flex-wrap: wrap; }
+    .btn {
+      padding: .7rem 1.4rem;
+      border-radius: 10px;
+      border: none;
+      font-size: .88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s, transform .2s;
+    }
+    .btn:hover { opacity: .88; transform: translateY(-2px); }
+    .btn-primary { background: linear-gradient(135deg, var(--ocean-mid), var(--ocean-deep)); color: #fff; }
+    .btn-outline { background: transparent; border: 2px solid var(--ocean-mid); color: var(--ocean-deep); }
+
+    .quiz-score {
+      display: none;
+      text-align: center;
+      padding: 1.5rem;
+    }
+    .quiz-score.show { display: block; }
+    .score-num { font-size: 3rem; font-weight: 900; color: var(--ocean-deep); }
+    .score-msg { font-size: .95rem; color: var(--text-muted); margin-top: .5rem; }
+
+    /* ─── Timeline ─────────────────────────────────────────────────── */
+    .timeline {
+      position: relative;
+      padding-left: 2.5rem;
+      margin-bottom: 3rem;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 1rem; top: 0; bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, var(--ocean-light), var(--danger));
+      border-radius: 3px;
+    }
+
+    .tl-item {
+      position: relative;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.2rem 1.4rem;
+      margin-bottom: 1.2rem;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.6);
+    }
+    .tl-item::before {
+      content: '';
+      position: absolute;
+      left: -1.7rem; top: 1.3rem;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--ocean-mid);
+      border: 3px solid #fff;
+      box-shadow: 0 0 0 3px var(--ocean-light);
+    }
+
+    .tl-year { font-size: .72rem; font-weight: 800; color: var(--ocean-mid); text-transform: uppercase; letter-spacing: .1em; }
+    .tl-text { font-size: .9rem; color: var(--text-muted); margin-top: .3rem; line-height: 1.55; }
+
+    /* ─── Call To Action ───────────────────────────────────────────── */
+    .cta {
+      background: linear-gradient(135deg, var(--ocean-deep) 0%, #1a4a6e 100%);
+      border-radius: var(--radius);
+      padding: 3rem 2rem;
+      text-align: center;
+      color: #fff;
+      margin-bottom: 3rem;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .cta::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    .cta h2 { font-size: 1.8rem; font-weight: 900; margin-bottom: .8rem; position: relative; }
+    .cta p  { opacity: .8; max-width: 480px; margin: 0 auto 1.5rem; position: relative; }
+
+    .cta-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; position: relative; }
+    .btn-white { background: #fff; color: var(--ocean-deep); }
+    .btn-ghost  { background: rgba(255,255,255,.15); color: #fff; border: 2px solid rgba(255,255,255,.4); }
+
+    /* ─── Footer ───────────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 2rem 1rem 3rem;
+      font-size: .78rem;
+      color: var(--ocean-deep);
+      opacity: .7;
+    }
+
+    /* ─── Modal ────────────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(10,30,50,0.6); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: var(--radius);
+      max-width: 480px; width: 100%;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.25);
+      overflow: hidden;
+      animation: popIn .3s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes popIn {
+      from { transform: scale(.85); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .modal-head {
+      padding: 1.5rem;
+      display: flex; align-items: center; gap: 1rem;
+      border-bottom: 1px solid #eee;
+    }
+    .modal-head .big-icon { font-size: 2.5rem; }
+    .modal-head h3 { font-size: 1.1rem; font-weight: 800; color: var(--text-dark); }
+    .modal-head p  { font-size: .82rem; color: var(--text-muted); margin-top: .25rem; }
+
+    .modal-body { padding: 1.5rem; }
+    .modal-body ul { list-style: none; display: flex; flex-direction: column; gap: .75rem; }
+    .modal-body li {
+      display: flex; gap: .75rem; align-items: flex-start;
+      font-size: .88rem; color: var(--text-muted); line-height: 1.5;
+    }
+    .modal-body li span.dot {
+      flex-shrink: 0;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--ocean-mid);
+      margin-top: .45rem;
+    }
+
+    .modal-foot {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #eee;
+      display: flex; justify-content: flex-end;
+    }
+
+    /* ─── Scroll-triggered animation ──────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity .7s, transform .7s;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ─── Responsive ───────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .quiz-options { grid-template-columns: 1fr; }
+      .chain-arrow  { padding: 0 .2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Ocean animated background -->
+<div class="ocean-bg">
+  <div class="wave"></div>
+  <div class="wave"></div>
+  <div class="wave"></div>
+</div>
+
+<!-- Floating microplastic particles -->
+<div class="particles" id="particles"></div>
+
+<!-- ════════════════════════════════════ HEADER ══════════════════════ -->
+<header>
+  <div class="badge">Éducation Environnementale</div>
+  <h1>
+    <span class="micro">MICRO</span><span class="plastic">PLASTIQUES</span><br>
+    dans la Chaîne Alimentaire
+  </h1>
+  <p class="subtitle">
+    Comment les plastiques que nous produisons finissent-ils dans notre assiette ?
+    Explorez la contamination invisible qui traverse tout l'écosystème marin.
+  </p>
+</header>
+
+<!-- ════════════════════════════════ CHAIN INFOGRAPHIC ══════════════ -->
+<div class="section reveal">
+  <div class="chain-wrapper">
+    <h2 class="section-title">Le Voyage des Microplastiques</h2>
+    <p style="text-align:center;color:var(--text-muted);font-size:.88rem;margin-bottom:2rem;">
+      Cliquez sur chaque étape pour en savoir plus
+    </p>
+    <div class="chain">
+
+      <!-- Step 1 -->
+      <div class="chain-step" onclick="openModal(0)">
+        <div class="circle">
+          🧴
+          <span class="step-num">1</span>
+        </div>
+        <div class="step-label">Déchets Plastiques</div>
+      </div>
+
+      <div class="chain-arrow">
+        <svg viewBox="0 0 40 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 10h32M24 2l10 8-10 8" stroke="#e74c3c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="chain-step" onclick="openModal(1)">
+        <div class="circle polluted">
+          🌊
+          <span class="step-num">2</span>
+        </div>
+        <div class="step-label">Fragmentation dans l'Océan</div>
+      </div>
+
+      <div class="chain-arrow">
+        <svg viewBox="0 0 40 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 10h32M24 2l10 8-10 8" stroke="#e74c3c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="chain-step" onclick="openModal(2)">
+        <div class="circle polluted">
+          🔬
+          <span class="step-num">3</span>
+        </div>
+        <div class="step-label">Microparticules en Suspension</div>
+      </div>
+
+      <div class="chain-arrow">
+        <svg viewBox="0 0 40 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 10h32M24 2l10 8-10 8" stroke="#e74c3c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="chain-step" onclick="openModal(3)">
+        <div class="circle polluted">
+          🐟
+          <span class="step-num">4</span>
+        </div>
+        <div class="step-label">Ingestion par les Poissons</div>
+      </div>
+
+      <div class="chain-arrow">
+        <svg viewBox="0 0 40 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 10h32M24 2l10 8-10 8" stroke="#e74c3c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="chain-step" onclick="openModal(4)">
+        <div class="circle danger">
+          🛒
+          <span class="step-num">5</span>
+        </div>
+        <div class="step-label">Pêche & Commerce</div>
+      </div>
+
+      <div class="chain-arrow">
+        <svg viewBox="0 0 40 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 10h32M24 2l10 8-10 8" stroke="#e74c3c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <!-- Step 6 -->
+      <div class="chain-step" onclick="openModal(5)">
+        <div class="circle danger">
+          🍽️
+          <span class="step-num">6</span>
+        </div>
+        <div class="step-label">Dans notre Assiette</div>
+      </div>
+
+    </div><!-- /chain -->
+  </div>
+</div>
+
+<!-- ════════════════════════════════════ STATS ══════════════════════ -->
+<div class="section reveal">
+  <h2 class="section-title">Chiffres Clés</h2>
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-icon">🧪</div>
+      <div class="stat-value">5 mm</div>
+      <div class="stat-label">Taille max d'un microplastique</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🐠</div>
+      <div class="stat-value">73%</div>
+      <div class="stat-label">des poissons d'eaux profondes contaminés</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🧂</div>
+      <div class="stat-value">90%</div>
+      <div class="stat-label">des marques de sel de mer contaminées</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">💧</div>
+      <div class="stat-value">1 000</div>
+      <div class="stat-label">particules ingérées par personne/an via l'eau du robinet</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🌍</div>
+      <div class="stat-value">14 M T</div>
+      <div class="stat-label">de plastique entrent dans les océans chaque année</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ CONTAMINATION LEVELS ═══════════ -->
+<div class="section reveal">
+  <h2 class="section-title">Niveaux de Contamination par Aliment</h2>
+  <div class="progress-section">
+    <div class="progress-item">
+      <div class="progress-header">
+        <span class="progress-name">🦐 Crevettes</span>
+        <span class="progress-val">93%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" data-width="93"></div></div>
+    </div>
+    <div class="progress-item">
+      <div class="progress-header">
+        <span class="progress-name">🐚 Moules</span>
+        <span class="progress-val">87%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" data-width="87"></div></div>
+    </div>
+    <div class="progress-item">
+      <div class="progress-header">
+        <span class="progress-name">🐟 Poissons gras</span>
+        <span class="progress-val">74%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" data-width="74"></div></div>
+    </div>
+    <div class="progress-item">
+      <div class="progress-header">
+        <span class="progress-name">🧂 Sel marin</span>
+        <span class="progress-val">90%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" data-width="90"></div></div>
+    </div>
+    <div class="progress-item">
+      <div class="progress-header">
+        <span class="progress-name">🍺 Bière</span>
+        <span class="progress-val">65%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" data-width="65"></div></div>
+    </div>
+    <div class="progress-item">
+      <div class="progress-header">
+        <span class="progress-name">💧 Eau en bouteille</span>
+        <span class="progress-val">93%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" data-width="93"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════ CARDS ══════════════════════ -->
+<div class="section reveal">
+  <h2 class="section-title">Comprendre le Problème</h2>
+  <div class="cards">
+
+    <div class="card">
+      <div class="card-header source">
+        <span class="icon">🏭</span>
+        Sources Principales
+      </div>
+      <div class="card-body">
+        <p>Les microplastiques proviennent de multiples sources : emballages fragmentés, fibres synthétiques des vêtements, pneumatiques, peintures marines et produits cosmétiques.</p>
+        <div class="tag-list">
+          <span class="tag">Emballages</span>
+          <span class="tag">Fibres textiles</span>
+          <span class="tag">Pneumatiques</span>
+          <span class="tag">Cosmétiques</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header impact">
+        <span class="icon">⚠️</span>
+        Impacts sur la Santé
+      </div>
+      <div class="card-body">
+        <p>Les microplastiques transportent des perturbateurs endocriniens, métaux lourds et pathogènes. Des études récentes les ont trouvés dans le sang, les poumons et le placenta humain.</p>
+        <div class="tag-list">
+          <span class="tag danger">Perturbateurs endocriniens</span>
+          <span class="tag danger">Inflammation</span>
+          <span class="tag danger">Toxines associées</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header solution">
+        <span class="icon">♻️</span>
+        Solutions & Actions
+      </div>
+      <div class="card-body">
+        <p>Réduire la production plastique à la source, améliorer la gestion des déchets, développer des matériaux biodégradables et filtrer les microplastiques en station d'épuration.</p>
+        <div class="tag-list">
+          <span class="tag">Réduction à la source</span>
+          <span class="tag">Filtration</span>
+          <span class="tag">Éco-conception</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header science">
+        <span class="icon">🔬</span>
+        La Science en Bref
+      </div>
+      <div class="card-body">
+        <p>La bioaccumulation amplifie les concentrations à chaque niveau trophique. Un grand prédateur accumule jusqu'à 1 000× plus de polluants qu'un organisme de la base de la chaîne.</p>
+        <div class="tag-list">
+          <span class="tag">Bioaccumulation</span>
+          <span class="tag">Bioamplification</span>
+          <span class="tag">Écotoxicologie</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ TIMELINE ════════════════════ -->
+<div class="section reveal">
+  <h2 class="section-title">Chronologie de la Découverte</h2>
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-year">1907</div>
+      <div class="tl-text">Invention de la Bakélite, premier plastique synthétique de masse, par Leo Baekeland.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">1972</div>
+      <div class="tl-text">Edward Carpenter signale pour la première fois des fragments plastiques à la surface de l'Atlantique Nord.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2004</div>
+      <div class="tl-text">Richard Thompson forge le terme "microplastique" dans la revue <em>Science</em> après avoir étudié des sédiments côtiers.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2015</div>
+      <div class="tl-text">Découverte de microplastiques dans le sel de mer et l'eau douce à l'échelle mondiale.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2018</div>
+      <div class="tl-text">L'OMS lance une évaluation des risques sanitaires liés aux microplastiques dans l'eau potable.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2022</div>
+      <div class="tl-text">Première détection de microplastiques dans le sang humain (étude publiée dans <em>Environment International</em>).</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2024</div>
+      <div class="tl-text">Traité international sur la pollution plastique en cours de négociation à l'ONU.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ QUIZ ════════════════════════ -->
+<div class="section reveal">
+  <h2 class="section-title">Testez vos Connaissances</h2>
+  <div class="quiz-section" id="quiz">
+    <div id="quiz-inner">
+      <div class="quiz-question" id="q-text"></div>
+      <div class="quiz-options" id="q-options"></div>
+      <div class="quiz-feedback" id="q-feedback"></div>
+      <div class="quiz-nav">
+        <button class="btn btn-primary" id="btn-next" onclick="nextQuestion()" style="display:none">Question suivante →</button>
+        <button class="btn btn-outline" id="btn-result" onclick="showResult()" style="display:none">Voir mon score</button>
+      </div>
+    </div>
+    <div class="quiz-score" id="quiz-score">
+      <div class="score-num" id="score-num"></div>
+      <div class="score-msg" id="score-msg"></div>
+      <button class="btn btn-primary" onclick="restartQuiz()" style="margin-top:1rem">Recommencer ♻️</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ CTA ═════════════════════════ -->
+<div class="section reveal">
+  <div class="cta">
+    <h2>Agissez Maintenant 🌊</h2>
+    <p>Chaque geste compte. Réduire votre consommation de plastique à usage unique protège à la fois les écosystèmes marins et votre propre santé.</p>
+    <div class="cta-actions">
+      <button class="btn btn-white" onclick="alert('Consultez les associations locales de protection des océans !')">
+        Trouver une initiative locale
+      </button>
+      <button class="btn btn-ghost" onclick="alert('Télécharger le guide pratique — fonctionnalité bientôt disponible')">
+        Télécharger le Guide PDF
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ FOOTER ══════════════════════ -->
+<footer>
+  <p>© 2026 — Éducation Environnementale sur les Microplastiques | Sources : UNEP, OMS, Science Journal, Environment International</p>
+  <p style="margin-top:.4rem">Conçu pour sensibiliser et éduquer le grand public.</p>
+</footer>
+
+<!-- ════════════════════════════════════ MODAL ══════════════════════ -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="big-icon" id="m-icon"></div>
+      <div>
+        <h3 id="m-title"></h3>
+        <p id="m-sub"></p>
+      </div>
+    </div>
+    <div class="modal-body">
+      <ul id="m-list"></ul>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" onclick="closeModal()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════ JS ═════════════════════════ -->
+<script>
+  /* ── Particles ─────────────────────────────────────────────────── */
+  const container = document.getElementById('particles');
+  for (let i = 0; i < 35; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const s = Math.random() * 8 + 3;
+    p.style.cssText = `
+      width:${s}px;height:${s}px;
+      left:${Math.random()*100}%;
+      animation-duration:${Math.random()*15+10}s;
+      animation-delay:${Math.random()*10}s;
+      opacity:${Math.random()*.5+.2};
+    `;
+    container.appendChild(p);
+  }
+
+  /* ── Scroll reveal ─────────────────────────────────────────────── */
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: .12 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  /* ── Animated progress bars ────────────────────────────────────── */
+  const barObserver = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.querySelectorAll('.bar-fill').forEach(bar => {
+          bar.style.width = bar.dataset.width + '%';
+        });
+        barObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: .3 });
+  document.querySelectorAll('.progress-section').forEach(el => barObserver.observe(el));
+
+  /* ── Modal data ─────────────────────────────────────────────────── */
+  const modalData = [
+    {
+      icon: '🧴', title: 'Étape 1 : Déchets Plastiques',
+      sub: 'La source du problème',
+      items: [
+        'Chaque année, l\'humanité produit plus de 400 millions de tonnes de plastique.',
+        'Seulement 9 % du plastique mondial a jamais été recyclé.',
+        'Les déchets plastiques s\'accumulent sur les côtes, dans les fleuves et finissent dans l\'océan.',
+        'Les emballages à usage unique représentent 40 % de la production totale.',
+      ]
+    },
+    {
+      icon: '🌊', title: 'Étape 2 : Fragmentation',
+      sub: 'Les rayons UV et les vagues brisent tout',
+      items: [
+        'Les UV solaires et l\'action mécanique des vagues fragmentent les plastiques en particules de plus en plus petites.',
+        'Un sac plastique peut se décomposer en millions de microparticules.',
+        'Ce processus prend entre 20 et 500 ans selon le type de plastique.',
+        'Les plastiques ne disparaissent jamais vraiment — ils se fragmentent indéfiniment.',
+      ]
+    },
+    {
+      icon: '🔬', title: 'Étape 3 : Microparticules en Suspension',
+      sub: 'Invisibles mais omniprésentes',
+      items: [
+        'Les microplastiques (< 5 mm) et nanoplastiques (< 1 µm) sont invisibles à l\'œil nu.',
+        'On les trouve désormais partout : au fond des océans, dans la neige de l\'Arctique, dans l\'air.',
+        'Ils fixent les polluants chimiques et les pathogènes présents dans l\'eau.',
+        'Leur légèreté les maintient en suspension dans toute la colonne d\'eau.',
+      ]
+    },
+    {
+      icon: '🐟', title: 'Étape 4 : Ingestion par les Poissons',
+      sub: 'Du plancton au grand prédateur',
+      items: [
+        'Le plancton confond les microplastiques avec sa nourriture habituelle.',
+        'Dès la base de la chaîne alimentaire, la contamination s\'installe.',
+        'La bioaccumulation multiplie les concentrations à chaque niveau trophique.',
+        '73 % des poissons d\'eaux profondes de l\'Atlantique Nord contiennent des microplastiques.',
+      ]
+    },
+    {
+      icon: '🛒', title: 'Étape 5 : Pêche & Commerce',
+      sub: 'La contamination atteint nos marchés',
+      items: [
+        'Les poissons, crustacés et mollusques contaminés sont pêchés et commercialisés normalement.',
+        'Les contrôles sanitaires actuels ne mesurent pas encore les microplastiques.',
+        'Les coquillages (moules, huîtres) sont particulièrement concentrateurs car ils filtrent l\'eau.',
+        'Le sel de mer est contaminé lors de son extraction : 90 % des marques testées positives.',
+      ]
+    },
+    {
+      icon: '🍽️', title: 'Étape 6 : Dans notre Assiette',
+      sub: 'La boucle est bouclée',
+      items: [
+        'Un adulte européen ingère en moyenne 5 g de microplastiques par semaine (≈ 1 carte de crédit).',
+        'Les microplastiques ont été trouvés dans le sang, les poumons et le placenta humain.',
+        'Ils transportent des perturbateurs endocriniens et des métaux lourds dans notre organisme.',
+        'Les effets à long terme sur la santé humaine sont encore en cours d\'évaluation.',
+      ]
+    },
+  ];
+
+  function openModal(i) {
+    const d = modalData[i];
+    document.getElementById('m-icon').textContent  = d.icon;
+    document.getElementById('m-title').textContent = d.title;
+    document.getElementById('m-sub').textContent   = d.sub;
+    document.getElementById('m-list').innerHTML = d.items.map(it =>
+      `<li><span class="dot"></span><span>${it}</span></li>`
+    ).join('');
+    document.getElementById('modal').classList.add('open');
+  }
+
+  function closeModal(e) {
+    if (!e || e.target === document.getElementById('modal') || e.target.closest('.btn-primary')) {
+      document.getElementById('modal').classList.remove('open');
+    }
+  }
+
+  /* ── Quiz ──────────────────────────────────────────────────────── */
+  const questions = [
+    {
+      q: 'Quelle est la taille maximale d\'un microplastique ?',
+      opts: ['5 cm', '5 mm', '50 µm', '1 m'],
+      correct: 1,
+      explain: '✅ Exact ! Un microplastique mesure moins de 5 millimètres.'
+    },
+    {
+      q: 'Quel pourcentage du plastique mondial a été recyclé ?',
+      opts: ['9 %', '30 %', '55 %', '75 %'],
+      correct: 0,
+      explain: '✅ Oui ! Seulement 9 % du plastique produit dans l\'histoire a été recyclé.'
+    },
+    {
+      q: 'Qui a inventé le terme "microplastique" ?',
+      opts: ['Jacques Cousteau', 'Richard Thompson', 'Albert Einstein', 'Charles Darwin'],
+      correct: 1,
+      explain: '✅ Correct ! Richard Thompson a forgé ce terme dans la revue Science en 2004.'
+    },
+    {
+      q: 'Dans quel organe a-t-on trouvé des microplastiques en 2022 ?',
+      opts: ['Le foie uniquement', 'Les reins', 'Le sang humain', 'Le cerveau'],
+      correct: 2,
+      explain: '✅ Bravo ! La première étude de détection dans le sang humain date de 2022.'
+    },
+    {
+      q: 'Combien de plastique entre dans les océans chaque année ?',
+      opts: ['1 million de tonnes', '5 millions de tonnes', '14 millions de tonnes', '100 millions de tonnes'],
+      correct: 2,
+      explain: '✅ Exact ! Environ 14 millions de tonnes de plastique finissent dans les océans annuellement.'
+    },
+  ];
+
+  let current = 0, score = 0, answered = false;
+
+  function renderQuestion() {
+    const q = questions[current];
+    document.getElementById('q-text').textContent = `Question ${current+1}/${questions.length} — ${q.q}`;
+    document.getElementById('q-options').innerHTML = q.opts.map((o, i) =>
+      `<button class="quiz-btn" onclick="answer(${i})">${o}</button>`
+    ).join('');
+    document.getElementById('q-feedback').className = 'quiz-feedback';
+    document.getElementById('q-feedback').textContent = '';
+    document.getElementById('btn-next').style.display = 'none';
+    document.getElementById('btn-result').style.display = 'none';
+    answered = false;
+  }
+
+  function answer(i) {
+    if (answered) return;
+    answered = true;
+    const q = questions[current];
+    const btns = document.querySelectorAll('.quiz-btn');
+    btns.forEach((b, idx) => {
+      if (idx === q.correct) b.classList.add('correct');
+      else if (idx === i)     b.classList.add('wrong');
+      b.style.pointerEvents = 'none';
+    });
+    const fb = document.getElementById('q-feedback');
+    if (i === q.correct) {
+      score++;
+      fb.textContent = q.explain;
+      fb.className = 'quiz-feedback show ok';
+    } else {
+      fb.textContent = `❌ Pas tout à fait. ${q.explain}`;
+      fb.className = 'quiz-feedback show ko';
+    }
+    if (current < questions.length - 1) document.getElementById('btn-next').style.display = 'inline-block';
+    else document.getElementById('btn-result').style.display = 'inline-block';
+  }
+
+  function nextQuestion() { current++; renderQuestion(); }
+
+  function showResult() {
+    document.getElementById('quiz-inner').style.display = 'none';
+    const sc = document.getElementById('quiz-score');
+    sc.classList.add('show');
+    document.getElementById('score-num').textContent = `${score} / ${questions.length}`;
+    const msgs = ['Essayez encore 💪', 'Pas mal du tout 👍', 'Très bien ! 🌊', 'Excellent ! 🏆', 'Parfait ! 🎓'];
+    document.getElementById('score-msg').textContent = msgs[Math.min(score, 4)];
+  }
+
+  function restartQuiz() {
+    current = 0; score = 0;
+    document.getElementById('quiz-inner').style.display = 'block';
+    document.getElementById('quiz-score').classList.remove('show');
+    renderQuestion();
+  }
+
+  renderQuestion();
+</script>
+</body>
+</html>
